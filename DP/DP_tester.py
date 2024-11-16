@@ -16,12 +16,12 @@ class DP_tester:
     @staticmethod
     def plot_fisher_infos(solver, ns: list, epsilon: float):
         ncols = 2
-        nrows = ns // 2
+        nrows = len(ns) // 2
 
         thetas = np.linspace(1e-1, 1 - 1e-1, 100)
 
         fig, axes = plt.subplots(
-            ncols=ncols, nrows=nrows, figsize=(8, 6 * nrows), sharey=True, sharex=True
+            ncols=ncols, nrows=nrows, figsize=(8, 3 * nrows), sharey=True, sharex=True
         )
         axes = axes.flatten()
 
@@ -97,12 +97,12 @@ class DP_tester:
             finfo2 = fisher_information_privatized(q2, n, theta)
             solver2_fisher_infs.append(finfo2)
 
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(6, 4))
 
         ax.plot(thetas, orig_fisher_infs, label="Original model")
         ax.plot(thetas, solver1_fisher_infs, label=f"Optimal Q {solver1.name}")
         ax.plot(thetas, solver2_fisher_infs, label=f"Optimal Q {solver2.name}")
-        ax.set_xlabel(r"$\theta")
+        ax.set_xlabel(r"$\theta$")
         ax.set_ylabel(r"$I(\theta, Q)$")
         ax.set_title(rf"$n={n}, \epsilon={epsilon}$, solver 1 {solver1.name}, solver 2 {solver2.name}")
         ax.legend()
