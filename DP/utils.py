@@ -30,9 +30,9 @@ def reduce_optimal_matrix(matrix: np.ndarray) -> np.ndarray:
         reduced matrix
     """
     nonzero_rows = list()
-    for i in range(matrix.shape[1]):
-        if np.all(matrix[:, i]):
-            nonzero_rows.append(matrix[:, i])
+    for i in range(matrix.shape[0]):
+        if np.any(matrix[i] >= 1e-8):
+            nonzero_rows.append(matrix[i])
     return np.array(nonzero_rows)
 
 
