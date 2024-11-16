@@ -71,19 +71,26 @@ class dca_global:
         q0 = np.random.uniform(size=n_trials + 1)
         q0 = np.vstack([q0] * (n_trials + 1))
         for i in range(n_trials + 1):
-            q0[i] = q0[i] / np.sum(q0[i])
+            q0[:, i] = q0[:, i] / np.sum(q0[:, i])
 
         q = q0
+        fish = fisher_information_privatized(q, n_trials, theta)
         history = [q]
 
         for i in range(max_iter):
             q_next = projected_gradient_descent(p_theta, p_theta_dot, epsilon, q, n_trials, theta)
+            fish_next = fisher_information_privatized(q_next, n_trials, theta)
 
             if np.allclose(q, q_next, rtol=tol, atol=tol):
                 status = f"Converged after {i+1} iterations."
                 break
 
+            if abs(fish - fish_next) < 1e-8:
+                status = f"Converged after {i+1} iteratons."
+                break
+
             q = q_next
+            fish = fish_next
             history.append(q)
         else:
             status = "Max iterations reached without convergence"

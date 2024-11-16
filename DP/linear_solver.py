@@ -100,6 +100,7 @@ class linear_solver:
         mus = compute_mu(S, p_theta, p_theta_dot)
         opt_theta = solve_linear_program(S, n_trials + 1, mus)
         Q_matrix = S @ np.diag(opt_theta)
+        Q_matrix = Q_matrix.T
 
         return {"Q_matrix": Q_matrix, "status": "Converged"}
 
