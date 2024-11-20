@@ -139,6 +139,8 @@ class DP_tester:
         ax.set_xlabel("$n$")
         ax.set_ylabel("Time (s)")
         ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$")
-
+        if log:
+            ax.set_yscale("log")
+        plt.legend()
         plt.tight_layout()
         plt.show()
