@@ -1,21 +1,19 @@
 import numpy as np
 from scipy.optimize import minimize
-from DP.utils import fisher_gradient, fisher_information_privatized, binom_optimal_privacy
+from DP.utils import fisher_gradient, fisher_information_privatized
 
-r"""
-x^{k+1} \in argmin_{x \in C} (g(x) - (h(x^{(k)}) + \langle \nabla h(x^{(k)}), x - x^{(k)} \rangle))
-"""
-
-def dca_update_step(p_theta, p_theta_dot, epsilon, q, n, theta):
+def dc_step(p_theta, p_theta_dot, epsilon, q, n, theta):
     nrows, ncols = q.shape
 
-    fisher_at_q = fisher_information_privatized(q, n, theta)
-    fisher_grad = fisher_gradient(p_theta, p_theta_dot, q)
+    h_at_q = sum((q @ p_theta_dot)**2)
+    h_gradient_at_q = 2*q @ np.outer(p_theta_dot, p_theta_dot)
 
     def objective(Q):
         Q = Q.reshape((nrows, ncols))
-        return -fisher_at_q + np.sum(fisher_grad * (Q - q))
-
+        g_of_Q = np.sum(Q @ p_theta)
+        linear_term = np.sum(h_gradient_at_q * Q)
+        return g_of_Q - linear_term
+    
     constraints = []
     # Privacy constraints
     for i in range(nrows):
@@ -59,13 +57,13 @@ def dca_update_step(p_theta, p_theta_dot, epsilon, q, n, theta):
     Q_initial /= np.sum(Q_initial, axis=0)  # Normalize to sum to 1 column-wise
     Q_initial = Q_initial.flatten()  # Flatten for the optimizer
 
-    result = minimize(objective, Q_initial, constraints=constraints, bounds=bounds)
+    result = minimize(objective, Q_initial, constraints=constraints, bounds=bounds, method="SLSQP",) #options={"disp": True})
 
     return result.x.reshape((nrows, ncols))
 
 
-class dca_global:
-    name = "DCA GLOBAL"
+class dca_nonrational:
+    name = "DCA NONRATIONAL"
 
     def __call__(self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100):
         q0 = np.random.uniform(size=n_trials + 1)
@@ -78,7 +76,7 @@ class dca_global:
         history = [q]
 
         for i in range(max_iter):
-            q_next = dca_update_step(p_theta, p_theta_dot, epsilon, q, n_trials, theta)
+            q_next = dc_step(p_theta, p_theta_dot, epsilon, q, n_trials, theta)
             fish_next = fisher_information_privatized(q_next, n_trials, theta)
 
             if np.allclose(q, q_next, rtol=tol, atol=tol):
@@ -92,16 +90,7 @@ class dca_global:
             q = q_next
             fish = fish_next
             history.append(q)
+        else:
             status = "Max iterations reached without convergence"
 
         return {"Q_matrix": q, "status": status, "history": history}
-    
-
-if __name__ == "__main__":
-    solver = dca_global()
-
-    q, status, history = binom_optimal_privacy(solver, 4, 5.0, 0.5)
-
-    print(q)
-    print(status)
-    print(history)
