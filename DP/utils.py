@@ -31,7 +31,7 @@ def reduce_optimal_matrix(matrix: np.ndarray) -> np.ndarray:
     """
     nonzero_rows = list()
     for i in range(matrix.shape[0]):
-        if np.any(matrix[i] >= 1e-8):
+        if np.any(matrix[i] >= 1e-6):
             nonzero_rows.append(matrix[i])
     return np.array(nonzero_rows)
 
@@ -90,25 +90,21 @@ def fisher_gradient(
         gradient matrix pointing in the direction of greatest increase
     """
 
-    nrows, ncols = Q.shape
-    gradient_matrix = np.zeros(Q.shape)
+    # Compute Q @ p_theta and Q @ p_theta_dot for all rows
+    Q_ptheta = Q @ p_theta  # Shape: (nrows,)
+    Q_ptheta_dot = Q @ p_theta_dot  # Shape: (nrows,)
 
-    for i in range(nrows):
-        Q_row = Q[i]
+    # Precompute terms to avoid redundant calculations
+    Q_ptheta_squared = np.power(Q_ptheta, 2)  # Element-wise squared values
+    Q_ptheta_dot_squared = np.power(Q_ptheta_dot, 2)
 
-        for j in range(ncols):
-            Q_ptheta_dot = Q_row @ p_theta_dot
-            Q_ptheta = Q_row @ p_theta
+    # Compute the numerator and denominator for all elements
+    gradient_matrix = 2 * np.outer(p_theta_dot, Q_ptheta_dot) / Q_ptheta - np.outer(
+        p_theta, Q_ptheta_dot_squared
+    ) / Q_ptheta_squared
 
-            gradient_matrix[i][j] = 2 * p_theta_dot[
-                j
-            ] * Q_ptheta_dot / Q_ptheta - p_theta[j] * np.power(
-                Q_ptheta_dot, 2
-            ) / np.power(
-                Q_ptheta, 2
-            )
+    return gradient_matrix.T
 
-    return gradient_matrix
 
 
 def is_epsilon_private(Q: np.ndarray, epsilon: float) -> bool:
@@ -211,14 +207,14 @@ def binom_optimal_privacy(
 
     Returns
     -------
-    Tuple[np.ndarray, float]
-        optimal Q matrix, max fisher information
+    Tuple[np.ndarray, str, np.ndarray]
+        optimal Q matrix, convergence status, history
     """
     # input space is n_trials since we can have at most n
     # successes
     k = n_trials + 1  # output space includes 0
     p_theta = binom.pmf(np.arange(k), n_trials, theta)
-    p_theta_dot = [binom_derivative(i, n_trials, theta) for i in range(k)]
+    p_theta_dot = np.array([binom_derivative(i, n_trials, theta) for i in range(k)])
 
     result = solver(p_theta, p_theta_dot, theta, epsilon, n_trials)
 
