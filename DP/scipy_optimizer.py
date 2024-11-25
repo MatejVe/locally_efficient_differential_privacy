@@ -2,6 +2,7 @@ from scipy.optimize import minimize
 from DP.utils import fisher_information_privatized
 import numpy as np
 
+
 class scipy_optimizer:
     name = "SCIPY OPTIMIZER"
 
@@ -32,7 +33,9 @@ class scipy_optimizer:
                         constraints.append(
                             {
                                 "type": "ineq",
-                                "fun": lambda Q, i=i, j=j, j_prime=j_prime: np.exp(epsilon)
+                                "fun": lambda Q, i=i, j=j, j_prime=j_prime: np.exp(
+                                    epsilon
+                                )
                                 * Q.reshape((nrows, ncols))[i, j_prime]
                                 - Q.reshape((nrows, ncols))[i, j],
                             }
@@ -62,4 +65,5 @@ class scipy_optimizer:
         return {
             "Q_matrix": result.x.reshape((nrows, ncols)),
             "status": result.message,
-            "history": None}
+            "history": None,
+        }

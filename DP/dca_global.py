@@ -1,10 +1,15 @@
 import numpy as np
 from scipy.optimize import minimize
-from DP.utils import fisher_gradient, fisher_information_privatized, binom_optimal_privacy
+from DP.utils import (
+    fisher_gradient,
+    fisher_information_privatized,
+    binom_optimal_privacy,
+)
 
 r"""
 x^{k+1} \in argmin_{x \in C} (g(x) - (h(x^{(k)}) + \langle \nabla h(x^{(k)}), x - x^{(k)} \rangle))
 """
+
 
 def dca_update_step(p_theta, p_theta_dot, epsilon, q, n, theta):
     nrows, ncols = q.shape
@@ -67,7 +72,9 @@ def dca_update_step(p_theta, p_theta_dot, epsilon, q, n, theta):
 class dca_global:
     name = "DCA GLOBAL"
 
-    def __call__(self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100):
+    def __call__(
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100
+    ):
         q0 = np.random.uniform(size=n_trials + 1)
         q0 = np.vstack([q0] * (n_trials + 1))
         for i in range(n_trials + 1):
@@ -95,7 +102,7 @@ class dca_global:
             status = "Max iterations reached without convergence"
 
         return {"Q_matrix": q, "status": status, "history": history}
-    
+
 
 if __name__ == "__main__":
     solver = dca_global()

@@ -61,7 +61,9 @@ def indicator_subgradient(Y, epsilon):
 class dca_mit:
     name = "DCA MIT solver"
 
-    def __call__(self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100):
+    def __call__(
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100
+    ):
         q0 = np.random.uniform(size=n_trials + 1)
         q0 = np.vstack([q0] * (n_trials + 1))
         for i in range(n_trials + 1):

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 from DP.utils import print_matrix
 
+
 def row_optimization(p_theta, p_theta_dot, theta, epsilon, P, x, tol=1e-6):
     """
     Optimize row x of the privacy matrix P.
@@ -40,7 +41,7 @@ def row_optimization(p_theta, p_theta_dot, theta, epsilon, P, x, tol=1e-6):
         dP_Y_theta = np.dot(P_full.T, p_theta_dot)
 
         # Compute Fisher information
-        fisher_info = np.sum((dP_Y_theta ** 2) / P_Y_theta)
+        fisher_info = np.sum((dP_Y_theta**2) / P_Y_theta)
 
         return -fisher_info  # Negative for minimization
 
@@ -51,10 +52,13 @@ def row_optimization(p_theta, p_theta_dot, theta, epsilon, P, x, tol=1e-6):
     for y in range(n_y):
         for y_prime in range(n_y):
             if y != y_prime:
-                constraints.append({
-                    'type': 'ineq',
-                    'fun': lambda P_x, y=y, y_prime=y_prime: P_x[y] - np.exp(epsilon) * P_x[y_prime]
-                })
+                constraints.append(
+                    {
+                        "type": "ineq",
+                        "fun": lambda P_x, y=y, y_prime=y_prime: P_x[y]
+                        - np.exp(epsilon) * P_x[y_prime],
+                    }
+                )
 
     # Non-negativity
     bounds = [(0, None) for _ in range(n_y)]
@@ -67,10 +71,10 @@ def row_optimization(p_theta, p_theta_dot, theta, epsilon, P, x, tol=1e-6):
     result = minimize(
         objective,
         P_x_initial,
-        method='SLSQP',
+        method="SLSQP",
         bounds=bounds,
         constraints=constraints,
-        options={'ftol': tol, 'disp': False}
+        options={"ftol": tol, "disp": False},
     )
 
     if not result.success:
@@ -83,7 +87,10 @@ def row_optimization(p_theta, p_theta_dot, theta, epsilon, P, x, tol=1e-6):
 
     return P_new
 
-def row_wise_optimizer(p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100):
+
+def row_wise_optimizer(
+    p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100
+):
     """
     Optimize the privacy matrix P in a row-by-row manner.
 
@@ -121,11 +128,11 @@ def row_wise_optimizer(p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6,
             print("==================")
             print_matrix(P)
             print("==================")
-        
+
         P = P / np.sum(P, axis=0)
 
         # Convergence check
-        if np.linalg.norm(P - P_old, ord='fro') < tol:
+        if np.linalg.norm(P - P_old, ord="fro") < tol:
             status = f"Converged after {iteration+1} iterations."
             break
 
@@ -134,4 +141,3 @@ def row_wise_optimizer(p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6,
         status = "Max iterations reached without convergence"
 
     return {"P_matrix": P, "status": status, "history": history}
-

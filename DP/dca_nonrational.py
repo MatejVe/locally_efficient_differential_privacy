@@ -2,18 +2,19 @@ import numpy as np
 from scipy.optimize import minimize
 from DP.utils import fisher_gradient, fisher_information_privatized
 
+
 def dc_step(p_theta, p_theta_dot, epsilon, q, n, theta):
     nrows, ncols = q.shape
 
-    h_at_q = sum((q @ p_theta_dot)**2)
-    h_gradient_at_q = 2*q @ np.outer(p_theta_dot, p_theta_dot)
+    h_at_q = sum((q @ p_theta_dot) ** 2)
+    h_gradient_at_q = 2 * q @ np.outer(p_theta_dot, p_theta_dot)
 
     def objective(Q):
         Q = Q.reshape((nrows, ncols))
         g_of_Q = np.sum(Q @ p_theta)
         linear_term = np.sum(h_gradient_at_q * Q)
         return g_of_Q - linear_term
-    
+
     constraints = []
     # Privacy constraints
     for i in range(nrows):
@@ -57,7 +58,13 @@ def dc_step(p_theta, p_theta_dot, epsilon, q, n, theta):
     Q_initial /= np.sum(Q_initial, axis=0)  # Normalize to sum to 1 column-wise
     Q_initial = Q_initial.flatten()  # Flatten for the optimizer
 
-    result = minimize(objective, Q_initial, constraints=constraints, bounds=bounds, method="SLSQP",) #options={"disp": True})
+    result = minimize(
+        objective,
+        Q_initial,
+        constraints=constraints,
+        bounds=bounds,
+        method="SLSQP",
+    )  # options={"disp": True})
 
     return result.x.reshape((nrows, ncols))
 
@@ -65,7 +72,9 @@ def dc_step(p_theta, p_theta_dot, epsilon, q, n, theta):
 class dca_nonrational:
     name = "DCA NONRATIONAL"
 
-    def __call__(self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100):
+    def __call__(
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100
+    ):
         q0 = np.random.uniform(size=n_trials + 1)
         q0 = np.vstack([q0] * (n_trials + 1))
         for i in range(n_trials + 1):

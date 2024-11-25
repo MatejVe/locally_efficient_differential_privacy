@@ -104,22 +104,17 @@ class DP_tester:
         ax.plot(thetas, solver2_fisher_infs, label=f"Optimal Q {solver2.name}")
         ax.set_xlabel(r"$\theta$")
         ax.set_ylabel(r"$I(\theta, Q)$")
-        ax.set_title(rf"$n={n}, \epsilon={epsilon}$, solver 1 {solver1.name}, solver 2 {solver2.name}")
+        ax.set_title(
+            rf"$n={n}, \epsilon={epsilon}$, solver 1 {solver1.name}, solver 2 {solver2.name}"
+        )
         ax.legend()
 
         plt.tight_layout()
         plt.show()
-        
 
     @staticmethod
-    def compare_runtimes(
-        solvers,
-        ns,
-        theta,
-        epsilon,
-        log=False
-    ):
-        
+    def compare_runtimes(solvers, ns, theta, epsilon, log=False):
+
         times = list()
 
         for solver in solvers:

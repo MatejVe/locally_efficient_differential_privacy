@@ -99,12 +99,12 @@ def fisher_gradient(
     Q_ptheta_dot_squared = np.power(Q_ptheta_dot, 2)
 
     # Compute the numerator and denominator for all elements
-    gradient_matrix = 2 * np.outer(p_theta_dot, Q_ptheta_dot) / Q_ptheta - np.outer(
-        p_theta, Q_ptheta_dot_squared
-    ) / Q_ptheta_squared
+    gradient_matrix = (
+        2 * np.outer(p_theta_dot, Q_ptheta_dot) / Q_ptheta
+        - np.outer(p_theta, Q_ptheta_dot_squared) / Q_ptheta_squared
+    )
 
     return gradient_matrix.T
-
 
 
 def is_epsilon_private(Q: np.ndarray, epsilon: float) -> bool:

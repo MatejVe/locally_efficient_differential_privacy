@@ -103,4 +103,3 @@ class linear_solver:
         Q_matrix = Q_matrix.T
 
         return {"Q_matrix": Q_matrix, "status": "Converged"}
-

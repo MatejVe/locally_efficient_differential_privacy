@@ -2,6 +2,7 @@ import numpy as np
 from utils import fisher_gradient, fisher_information_privatized, is_epsilon_private
 import cvxpy as cp
 
+
 def project_onto_feasible_set(Q, epsilon):
     n_plus_1 = Q.shape[0]
     Q_var = cp.Variable((n_plus_1, n_plus_1))
@@ -73,7 +74,7 @@ def linesearch(p_theta, p_theta_dot, epsilon, q, n, theta):
         q = q_new
         history.append(q)
         status = "Max iterations reached without convergence"
-    
+
     return {"Q_matrix": q, "status": status, "history": history}
 
 
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     p_theta = binom.pmf([0, 1, 2, 3], 3, theta)
     p_theta_dot = [binom_derivative(i, n, theta) for i in range(4)]
 
-    Q_init = np.ones((n + 1, n + 1)) / (n + 1) + np.random.normal(size=(n+1, n+1))
+    Q_init = np.ones((n + 1, n + 1)) / (n + 1) + np.random.normal(size=(n + 1, n + 1))
 
     Q_init = project_onto_feasible_set(Q_init, epsilon)
 
