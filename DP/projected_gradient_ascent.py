@@ -4,6 +4,7 @@ from DP.utils import (
     fisher_gradient,
     fisher_information_privatized,
     binom_optimal_privacy,
+    is_epsilon_private
 )
 from typing import Tuple
 
@@ -28,16 +29,16 @@ def initialize_projection_solver(
     for i in range(n_plus_1):
         Q_i = Q_var[i, :]
         constraints += [
-            Q_i[j_prime] - exp_neg_eps * Q_i[j] >= 0
+            Q_i[j] - exp_neg_eps * Q_i[j_prime] >= 0
             for j in range(n_plus_1)
             for j_prime in range(n_plus_1)
-            if j != j_prime
+            if j < j_prime
         ]
         constraints += [
             exp_eps * Q_i[j_prime] - Q_i[j] >= 0
             for j in range(n_plus_1)
             for j_prime in range(n_plus_1)
-            if j != j_prime
+            if j < j_prime
         ]
 
     prob = cp.Problem(objective, constraints)
@@ -49,7 +50,7 @@ class projected_gradient_ascent:
     name = "PGA"
 
     def __call__(
-        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=100
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=1000
     ):
         Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
             n_trials + 1
@@ -79,12 +80,13 @@ class projected_gradient_ascent:
             )
             grad_I[(grad_I > 1e7) | (grad_I < -1e7)] = 0
 
-            q_next = q + grad_I
+            q_next = q + 0.05 * grad_I
 
-            Q_param.value = q_next
-            Q_var.value = q_next
-            projection_problem.solve(solver=cp.SCS)
-            q_next = Q_var.value
+            if not is_epsilon_private(q_next, epsilon):
+                Q_param.value = q_next
+                Q_var.value = q_next
+                projection_problem.solve(solver=cp.SCS)
+                q_next = Q_var.value
 
             fish_next = fisher_information_privatized(q_next, n_trials, theta)
 
