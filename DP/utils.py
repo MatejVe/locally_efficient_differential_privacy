@@ -132,16 +132,16 @@ def is_epsilon_private(Q: np.ndarray, epsilon: float) -> bool:
             for j_prime in range(n_cols):
                 if j != j_prime:
                     if np.exp(-epsilon) * row[j_prime] > row[j]:
-                        print(f"Row {i}, cols {j} and {j_prime} aren't private:")
-                        print(
-                            f"exp(-epsilon)Q[j_prime]={np.exp(-epsilon)*row[j_prime]}"
-                        )
-                        print(f"Q[j]={row[j]}")
+                        #print(f"Row {i}, cols {j} and {j_prime} aren't private:")
+                        #print(
+                        #    f"exp(-epsilon)Q[j_prime]={np.exp(-epsilon)*row[j_prime]}"
+                        #)
+                        #print(f"Q[j]={row[j]}")
                         return False
                     if row[j] > np.exp(epsilon) * row[j_prime]:
-                        print(f"Row {i}, cols {j} and {j_prime} aren't private:")
-                        print(f"exp(epsilon)Q[j_prime]={np.exp(-epsilon)*row[j_prime]}")
-                        print(f"Q[j]={row[j]}")
+                        #print(f"Row {i}, cols {j} and {j_prime} aren't private:")
+                        #print(f"exp(epsilon)Q[j_prime]={np.exp(-epsilon)*row[j_prime]}")
+                        #print(f"Q[j]={row[j]}")
                         return False
     return True
 
