@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.style.use("ggplot")
 import numpy as np
 from time import time
+from tqdm import tqdm
 
 from DP.utils import (
     fisher_information_binom,
@@ -25,7 +26,7 @@ class DP_tester:
         )
         axes = axes.flatten()
 
-        for i, n in enumerate(ns):
+        for i, n in tqdm(enumerate(ns)):
             orig_fisher_infs = fisher_information_binom(n, thetas)
             privatized_fisher_infs = list()
             for theta in thetas:
@@ -50,7 +51,7 @@ class DP_tester:
         epsilons = np.linspace(epsilon_min, epsilon_max, 100)
 
         fishers_private = list()
-        for eps in epsilons:
+        for eps in tqdm(epsilons):
             q_matrix, _, _ = binom_optimal_privacy(solver, n, eps, theta)
             finfo = fisher_information_privatized(q_matrix, n, theta)
             fishers_private.append(finfo)
@@ -88,12 +89,22 @@ class DP_tester:
 
         solver1_fisher_infs = list()
         solver2_fisher_infs = list()
-        for theta in thetas:
-            q1, _, _ = binom_optimal_privacy(solver1, n, epsilon, theta)
+        converged_solver1 = list()
+        converged_solver2 = list()
+        for theta in tqdm(thetas):
+            q1, status, _ = binom_optimal_privacy(solver1, n, epsilon, theta)
+            if "Converged" in status:
+                converged_solver1.append(True)
+            else:
+                converged_solver1.append(False)
             finfo1 = fisher_information_privatized(q1, n, theta)
             solver1_fisher_infs.append(finfo1)
 
-            q2, _, _ = binom_optimal_privacy(solver2, n, epsilon, theta)
+            q2, status, _ = binom_optimal_privacy(solver2, n, epsilon, theta)
+            if "Converged" in status:
+                converged_solver2.append(True)
+            else:
+                converged_solver2.append(False)
             finfo2 = fisher_information_privatized(q2, n, theta)
             solver2_fisher_infs.append(finfo2)
 
@@ -102,6 +113,13 @@ class DP_tester:
         ax.plot(thetas, orig_fisher_infs, label="Original model")
         ax.plot(thetas, solver1_fisher_infs, label=f"Optimal Q {solver1.name}")
         ax.plot(thetas, solver2_fisher_infs, label=f"Optimal Q {solver2.name}")
+        converged_solver2 = np.array(converged_solver2)
+        non_converged_indices_2 = ~converged_solver2
+        solver2_fisher_infs = np.array(solver2_fisher_infs)
+        print(thetas[non_converged_indices_2])
+        ax.scatter(thetas[non_converged_indices_2],
+                   solver2_fisher_infs[non_converged_indices_2],
+                   marker="x", color="red", s=50, label=f"{solver2.name} not converged")
         ax.set_xlabel(r"$\theta$")
         ax.set_ylabel(r"$I(\theta, Q)$")
         ax.set_title(
@@ -118,8 +136,9 @@ class DP_tester:
         times = list()
 
         for solver in solvers:
+            print(f"Calculating for {solver.name}")
             solver_times = list()
-            for n in ns:
+            for n in tqdm(ns):
                 t_start = time()
                 q, status, _ = binom_optimal_privacy(solver, n, epsilon, theta)
                 t_end = time()
