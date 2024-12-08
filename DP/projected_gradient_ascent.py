@@ -1,12 +1,56 @@
-import numpy as np
-import cvxpy as cp
-from DP.utils import (
-    fisher_gradient,
-    fisher_information_privatized,
-    binom_optimal_privacy,
-    is_epsilon_private
-)
 from typing import Tuple
+
+import cvxpy as cp
+import numpy as np
+from scipy.stats import binom
+
+from DP.utils import (binom_derivative, binom_optimal_privacy, fisher_gradient,
+                      fisher_information_privatized, is_epsilon_private)
+
+
+def fisher_gradient_modified(p_theta, p_theta_dot, q_mat, epsilon):
+    grad = np.zeros(shape=q_mat.shape)
+
+    long_coef = np.exp(-epsilon) + np.exp(epsilon) + 1
+    for i in range(q_mat.shape[0]):
+        for j in range(q_mat.shape[1]):
+            qpdot = q_mat[i] @ p_theta_dot
+            qp = q_mat[i] @ p_theta
+            qpdot2 = qpdot**2
+            qp2 = qp**2
+
+            first = 2 * p_theta_dot[j] * qpdot / qp
+            second = p_theta[j] * qpdot2 / qp2
+
+            boundary_terms = 0
+            for j_prime in range(q_mat.shape[1]):
+                if j != j_prime:
+                    y = q_mat[i, j]
+                    x = q_mat[i, j_prime]
+                    boundary_terms += (
+                        3 * y**2 / x**3 - long_coef * 2 * y / x**2 + long_coef / x
+                    )
+            grad[i, j] = first - second + 0.001 ** q_mat.shape[0] * boundary_terms
+    return grad
+
+
+def fisher_information_privatized_modified(Q, n, theta, eps):
+    p_theta = binom.pmf(np.arange(n + 1), n, theta)
+    p_theta_dot = [binom_derivative(i, n, theta) for i in range(n + 1)]
+
+    numerator = np.power(Q @ p_theta_dot, 2)
+    denominator = Q @ p_theta
+    boundary_terms = 0
+    for i in range(Q.shape[0]):
+        for j in range(Q.shape[1]):
+            for j_prime in range(Q.shape[1]):
+                if j != j_prime:
+                    y = Q[i, j]
+                    x = Q[i, j_prime]
+                    boundary_terms += (
+                        (y / x - np.exp(-eps)) * (y / x - 1) * (y / x - np.exp(eps))
+                    )
+    return np.sum(numerator / denominator) + 0.001**n * boundary_terms
 
 
 def initialize_projection_solver(
@@ -80,7 +124,7 @@ class projected_gradient_ascent:
             )
             grad_I[(grad_I > 1e7) | (grad_I < -1e7)] = 0
 
-            q_next = q + 0.05 * grad_I
+            q_next = q + grad_I / np.sqrt(100 * (i + 1))
 
             if not is_epsilon_private(q_next, epsilon):
                 Q_param.value = q_next
