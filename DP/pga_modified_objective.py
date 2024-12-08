@@ -8,6 +8,51 @@ from DP.utils import (binom_derivative, binom_optimal_privacy, fisher_gradient,
                       fisher_information_privatized, is_epsilon_private)
 
 
+def fisher_gradient_modified(p_theta, p_theta_dot, q_mat, epsilon):
+    grad = np.zeros(shape=q_mat.shape)
+
+    long_coef = np.exp(-epsilon) + np.exp(epsilon) + 1
+    for i in range(q_mat.shape[0]):
+        for j in range(q_mat.shape[1]):
+            qpdot = q_mat[i] @ p_theta_dot
+            qp = q_mat[i] @ p_theta
+            qpdot2 = qpdot**2
+            qp2 = qp**2
+
+            first = 2 * p_theta_dot[j] * qpdot / qp
+            second = p_theta[j] * qpdot2 / qp2
+
+            boundary_terms = 0
+            for j_prime in range(q_mat.shape[1]):
+                if j != j_prime:
+                    y = q_mat[i, j]
+                    x = q_mat[i, j_prime]
+                    boundary_terms += (
+                        3 * y**2 / x**3 - long_coef * 2 * y / x**2 + long_coef / x
+                    )
+            grad[i, j] = first - second + 0.001 ** q_mat.shape[0] * boundary_terms
+    return grad
+
+
+def fisher_information_privatized_modified(Q, n, theta, eps):
+    p_theta = binom.pmf(np.arange(n + 1), n, theta)
+    p_theta_dot = [binom_derivative(i, n, theta) for i in range(n + 1)]
+
+    numerator = np.power(Q @ p_theta_dot, 2)
+    denominator = Q @ p_theta
+    boundary_terms = 0
+    for i in range(Q.shape[0]):
+        for j in range(Q.shape[1]):
+            for j_prime in range(Q.shape[1]):
+                if j != j_prime:
+                    y = Q[i, j]
+                    x = Q[i, j_prime]
+                    boundary_terms += (
+                        (y / x - np.exp(-eps)) * (y / x - 1) * (y / x - np.exp(eps))
+                    )
+    return np.sum(numerator / denominator) + 0.001**n * boundary_terms
+
+
 def initialize_projection_solver(
     n_trials: int, epsilon: float
 ) -> Tuple[cp.Problem, cp.Variable, cp.Parameter]:
@@ -45,7 +90,7 @@ def initialize_projection_solver(
     return prob, Q_var, Q_param
 
 
-class projected_gradient_ascent:
+class PGAModified:
     name = "PGA"
 
     def __call__(
@@ -61,11 +106,11 @@ class projected_gradient_ascent:
         )
 
         q = Q_init
-        fish = fisher_information_privatized(q, n_trials, theta)
+        fish = fisher_information_privatized_modified(q, n_trials, theta, epsilon)
         history = [Q_init]
 
         for i in range(max_iter):
-            grad_I = fisher_gradient(p_theta, p_theta_dot, q)
+            grad_I = fisher_gradient_modified(p_theta, p_theta_dot, q, epsilon)
             # grad_I[-1, :] = np.zeros_like(grad_I[-1, :])
 
             # We need to clip the gradient since for very small rows
@@ -87,7 +132,9 @@ class projected_gradient_ascent:
                 projection_problem.solve(solver=cp.SCS)
                 q_next = Q_var.value
 
-            fish_next = fisher_information_privatized(q_next, n_trials, theta)
+            fish_next = fisher_information_privatized_modified(
+                q_next, n_trials, theta, epsilon
+            )
 
             if np.allclose(q, q_next, rtol=tol, atol=tol):
                 status = f"Converged after {i+1} iterations."
@@ -103,13 +150,3 @@ class projected_gradient_ascent:
             status = "Max iterations reached without convergence"
 
         return {"Q_matrix": q, "status": status, "history": history}
-
-
-if __name__ == "__main__":
-    solver = projected_gradient_ascent()
-
-    q, status, history = binom_optimal_privacy(solver, 1, 1.0, 0.5)
-
-    print(q)
-    print(status)
-    print(history)
