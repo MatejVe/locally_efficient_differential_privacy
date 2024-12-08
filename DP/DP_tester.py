@@ -161,3 +161,41 @@ class DP_tester:
         plt.legend()
         plt.tight_layout()
         plt.show()
+
+    @staticmethod
+    def max_discrepancy_between_two_solvers(
+        solver1, solver2, ns, epsilons, sampled_thetas=100
+    ):
+        thetas = np.linspace(1e-1, 1 - 1e-1, sampled_thetas)
+
+        discrepancies = np.zeros(shape=(len(ns), len(epsilons)))
+
+        for i, n in enumerate(ns):
+            for j, eps in enumerate(epsilons):
+                abs_discrepancies = list()
+                for t in thetas:
+                    q1, _, _ = binom_optimal_privacy(solver1, n, eps, t)
+                    fish1 = fisher_information_privatized(q1, n, t)
+
+                    q2, _, _ = binom_optimal_privacy(solver2, n, eps, t)
+                    fish2 = fisher_information_privatized(q2, n, t)
+
+                    abs_discrepancies.append(abs(fish1 - fish2))
+                discrepancies[i, j] = np.max(abs_discrepancies)
+
+        # Plotting the discrepancies as a heatmap
+        plt.figure(figsize=(10, 8))
+        plt.imshow(
+            discrepancies.T,
+            aspect="auto",
+            origin="lower",
+            extent=[ns[0], ns[-1], epsilons[0], epsilons[-1]],
+            cmap="coolwarm",
+        )
+        plt.colorbar(label="Max Error")
+        plt.xlabel("n (sample sizes)")
+        plt.ylabel("ε (epsilon values)")
+        plt.title("Maximum Error Between Two Solvers for Sampled Thetas")
+        plt.show()
+
+        return discrepancies
