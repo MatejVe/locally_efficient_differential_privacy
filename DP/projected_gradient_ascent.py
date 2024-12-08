@@ -104,12 +104,3 @@ class PGA:
 
         return {"Q_matrix": q, "status": status, "history": history}
 
-
-if __name__ == "__main__":
-    solver = projected_gradient_ascent()
-
-    q, status, history = binom_optimal_privacy(solver, 1, 1.0, 0.5)
-
-    print(q)
-    print(status)
-    print(history)
