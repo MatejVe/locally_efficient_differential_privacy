@@ -1,16 +1,14 @@
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 
 matplotlib.style.use("ggplot")
-import numpy as np
 from time import time
+
+import numpy as np
 from tqdm import tqdm
 
-from DP.utils import (
-    fisher_information_binom,
-    binom_optimal_privacy,
-    fisher_information_privatized,
-)
+from DP.utils import (binom_optimal_privacy, fisher_information_binom,
+                      fisher_information_privatized)
 
 
 class DP_tester:
@@ -117,9 +115,14 @@ class DP_tester:
         non_converged_indices_2 = ~converged_solver2
         solver2_fisher_infs = np.array(solver2_fisher_infs)
         print(thetas[non_converged_indices_2])
-        ax.scatter(thetas[non_converged_indices_2],
-                   solver2_fisher_infs[non_converged_indices_2],
-                   marker="x", color="red", s=50, label=f"{solver2.name} not converged")
+        ax.scatter(
+            thetas[non_converged_indices_2],
+            solver2_fisher_infs[non_converged_indices_2],
+            marker="x",
+            color="red",
+            s=50,
+            label=f"{solver2.name} not converged",
+        )
         ax.set_xlabel(r"$\theta$")
         ax.set_ylabel(r"$I(\theta, Q)$")
         ax.set_title(

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+
 from DP.utils import fisher_gradient, fisher_information_privatized
 
 

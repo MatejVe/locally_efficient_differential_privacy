@@ -1,7 +1,8 @@
-from scipy.optimize import linprog
-import numpy as np
 import itertools
-from typing import Tuple, Dict
+from typing import Dict, Tuple
+
+import numpy as np
+from scipy.optimize import linprog
 
 
 def generate_staircase_matrix(k: int, epsilon: float) -> np.ndarray:

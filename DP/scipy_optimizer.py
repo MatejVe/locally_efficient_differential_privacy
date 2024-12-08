@@ -1,6 +1,7 @@
-from scipy.optimize import minimize
-from DP.utils import fisher_information_privatized
 import numpy as np
+from scipy.optimize import minimize
+
+from DP.utils import fisher_information_privatized
 
 
 class scipy_optimizer:

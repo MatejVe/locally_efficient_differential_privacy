@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+
 from DP.utils import print_matrix
 
 

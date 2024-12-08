@@ -1,6 +1,7 @@
-import numpy as np
-from utils import fisher_gradient, fisher_information_privatized, is_epsilon_private
 import cvxpy as cp
+import numpy as np
+from utils import (fisher_gradient, fisher_information_privatized,
+                   is_epsilon_private)
 
 
 def project_onto_feasible_set(Q, epsilon):

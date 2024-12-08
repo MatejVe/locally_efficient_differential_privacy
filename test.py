@@ -1,5 +1,6 @@
-from DP.row_optimizer import row_wise_optimizer
 import numpy as np
+
+from DP.row_optimizer import row_wise_optimizer
 
 
 # Define p_theta(x) and p_theta_dot(x)

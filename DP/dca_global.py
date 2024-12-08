@@ -1,10 +1,8 @@
 import numpy as np
 from scipy.optimize import minimize
-from DP.utils import (
-    fisher_gradient,
-    fisher_information_privatized,
-    binom_optimal_privacy,
-)
+
+from DP.utils import (binom_optimal_privacy, fisher_gradient,
+                      fisher_information_privatized)
 
 r"""
 x^{k+1} \in argmin_{x \in C} (g(x) - (h(x^{(k)}) + \langle \nabla h(x^{(k)}), x - x^{(k)} \rangle))
