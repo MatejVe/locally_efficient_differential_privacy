@@ -70,7 +70,7 @@ class PGAWithEdgeTraversal:
     to find a Q matrix that maximizes Fisher information subject to epsilon-privacy constraints.
     """
 
-    name = "PGA"
+    name = "PGAET"
 
     def __call__(
         self,

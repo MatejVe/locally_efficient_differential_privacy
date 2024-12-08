@@ -116,7 +116,7 @@ class PGAModifiedEdgeTraversal:
     to find a Q matrix that maximizes Fisher information subject to epsilon-privacy constraints.
     """
 
-    name = "PGA"
+    name = "PGAMET"
 
     def __call__(
         self,
@@ -126,8 +126,7 @@ class PGAModifiedEdgeTraversal:
         epsilon,
         n_trials,
         tol=1e-6,
-        max_iter=2000,
-        step_size=0.05,
+        max_iter=2000
     ):
         """
         Execute the PGA algorithm to optimize Q matrix.

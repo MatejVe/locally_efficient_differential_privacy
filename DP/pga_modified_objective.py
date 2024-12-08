@@ -91,7 +91,7 @@ def initialize_projection_solver(
 
 
 class PGAModified:
-    name = "PGA"
+    name = "PGAM"
 
     def __call__(
         self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=1000
