@@ -93,7 +93,7 @@ def solve_linear_program(
         raise ValueError("Linear program did not converge")
 
 
-class linear_solver:
+class LinearSolver:
     name = "Linear solver"
 
     def __call__(self, p_theta, p_theta_dot, theta, epsilon, n_trials) -> Dict:

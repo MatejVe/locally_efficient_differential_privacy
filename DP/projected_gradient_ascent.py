@@ -45,7 +45,7 @@ def initialize_projection_solver(
     return prob, Q_var, Q_param
 
 
-class projected_gradient_ascent:
+class PGA:
     name = "PGA"
 
     def __call__(
