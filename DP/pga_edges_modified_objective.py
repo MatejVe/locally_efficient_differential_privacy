@@ -4,8 +4,12 @@ import cvxpy as cp
 import numpy as np
 from scipy.stats import binom
 
-from DP.utils import (binom_derivative, fisher_gradient,
-                      fisher_information_privatized, is_epsilon_private)
+from DP.utils import (
+    binom_derivative,
+    fisher_gradient,
+    fisher_information_privatized,
+    is_epsilon_private,
+)
 
 
 def fisher_gradient_modified(p_theta, p_theta_dot, q_mat, epsilon):
@@ -30,7 +34,7 @@ def fisher_gradient_modified(p_theta, p_theta_dot, q_mat, epsilon):
                     boundary_terms += (
                         3 * y**2 / x**3 - long_coef * 2 * y / x**2 + long_coef / x
                     )
-            grad[i, j] = first - second + 0.001 ** q_mat.shape[0] * boundary_terms
+            grad[i, j] = first - second - 0.001 ** q_mat.shape[0] * boundary_terms
     return grad
 
 
@@ -50,7 +54,7 @@ def fisher_information_privatized_modified(Q, n, theta, eps):
                     boundary_terms += (
                         (y / x - np.exp(-eps)) * (y / x - 1) * (y / x - np.exp(eps))
                     )
-    return np.sum(numerator / denominator) + 0.001**n * boundary_terms
+    return np.sum(numerator / denominator) - 0.001**n * boundary_terms
 
 
 def initialize_projection_solver(
@@ -119,14 +123,7 @@ class PGAModifiedEdgeTraversal:
     name = "PGAMET"
 
     def __call__(
-        self,
-        p_theta,
-        p_theta_dot,
-        theta,
-        epsilon,
-        n_trials,
-        tol=1e-6,
-        max_iter=2000
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=2000
     ):
         """
         Execute the PGA algorithm to optimize Q matrix.
@@ -171,7 +168,12 @@ class PGAModifiedEdgeTraversal:
             n_trials, epsilon
         )
 
-        q = Q_init
+        Q_param.value = Q_init
+        Q_var.value = Q_init
+        projection_problem.solve(solver=cp.SCS)
+        q_projected = Q_var.value
+
+        q = q_projected
         current_fish = fisher_information_privatized_modified(
             q, n_trials, theta, epsilon
         )
@@ -195,10 +197,10 @@ class PGAModifiedEdgeTraversal:
 
                 # Optional: gradient clipping or scaling if needed
                 # For example:
-                # grad_I = np.clip(grad_I, -1e5, 1e5)
+                grad_I = np.clip(grad_I, -1e5, 1e5)
 
                 # Perform the gradient ascent step
-                q_next = q + grad_I / np.sqrt(100 * (i + 1))
+                q_next = q + grad_I / np.sqrt(10 * n_trials * (i + 1))
 
                 # Check feasibility; if not private, project onto feasible region
                 if not is_epsilon_private(q_next, epsilon):
@@ -208,6 +210,12 @@ class PGAModifiedEdgeTraversal:
                     projection_problem.solve(solver=cp.SCS)
                     q_projected = Q_var.value
 
+                    if q_projected is None:
+                        print("q_next")
+                        print(q_next)
+                        print("grad_I")
+                        print(grad_I)
+                        print(grad_I / np.sqrt(10 * n_trials * (i + 1)))
                     history.append(q_projected.copy())
                     if first_projection is not None:
                         second_projection = q_projected

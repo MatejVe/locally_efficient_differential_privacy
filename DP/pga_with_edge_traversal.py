@@ -3,8 +3,7 @@ from typing import Tuple
 import cvxpy as cp
 import numpy as np
 
-from DP.utils import (fisher_gradient, fisher_information_privatized,
-                      is_epsilon_private)
+from DP.utils import fisher_gradient, fisher_information_privatized, is_epsilon_private
 
 
 def initialize_projection_solver(
@@ -49,7 +48,7 @@ def linesearch(
     direction: np.ndarray,
     n_trials: int,
     theta: float,
-    alpha_max=0.1,
+    alpha_max=3.0,
 ):
 
     q_new1 = q_initial + alpha_max * direction
@@ -149,9 +148,11 @@ class PGAWithEdgeTraversal:
                 # Optional: gradient clipping or scaling if needed
                 # For example:
                 # grad_I = np.clip(grad_I, -1e5, 1e5)
+                grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 10])
+                grad_I[-1, :] = 0
 
                 # Perform the gradient ascent step
-                q_next = q + grad_I / np.sqrt(100 * (i + 1))
+                q_next = q + grad_I #/ np.sqrt(100 * (i + 1))
 
                 # Check feasibility; if not private, project onto feasible region
                 if not is_epsilon_private(q_next, epsilon):

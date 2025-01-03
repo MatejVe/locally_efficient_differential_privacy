@@ -7,17 +7,21 @@ from time import time
 import numpy as np
 from tqdm import tqdm
 
-from DP.utils import (binom_optimal_privacy, fisher_information_binom,
-                      fisher_information_privatized)
+from DP.utils import (
+    binom_optimal_privacy,
+    fisher_information_binom,
+    fisher_information_privatized,
+)
+from DP.linear_solver import LinearSolver
 
 
 class DP_tester:
     @staticmethod
-    def plot_fisher_infos(solver, ns: list, epsilon: float):
+    def plot_fisher_infos(solver, ns: list, epsilon: float, n_thetas: int = 50):
         ncols = 2
         nrows = len(ns) // 2
 
-        thetas = np.linspace(1e-1, 1 - 1e-1, 100)
+        thetas = np.linspace(1e-2, 1 - 1e-2, n_thetas)
 
         fig, axes = plt.subplots(
             ncols=ncols, nrows=nrows, figsize=(8, 3 * nrows), sharey=True, sharex=True
@@ -44,9 +48,11 @@ class DP_tester:
         plt.show()
 
     @staticmethod
-    def fisher_inf_vs_epsilon(solver, n, theta, epsilon_min=1e-2, epsilon_max=10):
+    def fisher_inf_vs_epsilon(
+        solver, n, theta, epsilon_min=1e-2, epsilon_max=10, n_epsilons=100
+    ):
         orig_fisher_information = fisher_information_binom(n, theta)
-        epsilons = np.linspace(epsilon_min, epsilon_max, 100)
+        epsilons = np.linspace(epsilon_min, epsilon_max, n_epsilons)
 
         fishers_private = list()
         for eps in tqdm(epsilons):
@@ -80,8 +86,8 @@ class DP_tester:
         plt.show()
 
     @staticmethod
-    def compare_fisher_two_solvers(solver1, solver2, n, epsilon):
-        thetas = np.linspace(1e-1, 1 - 1e-1, 100)
+    def compare_fisher_two_solvers(solver1, solver2, n, epsilon, n_thetas=50):
+        thetas = np.linspace(1e-2, 1 - 1e-2, n_thetas)
 
         orig_fisher_infs = fisher_information_binom(n, thetas)
 
@@ -134,25 +140,87 @@ class DP_tester:
         plt.show()
 
     @staticmethod
-    def compare_runtimes(solvers, ns, theta, epsilon, log=False):
+    def compare_fisher_multiple_solvers(solvers, n, epsilon, n_thetas=50):
+        thetas = np.linspace(1e-2, 1 - 1e-2, n_thetas)
 
-        times = list()
+        orig_fisher_infs = fisher_information_binom(n, thetas)
+        linear_fishes = list()
+        for theta in thetas:
+            q, _, _ = binom_optimal_privacy(LinearSolver(), n, epsilon, theta)
+            f = fisher_information_privatized(q, n, theta)
+            linear_fishes.append(f)
+        linear_fishes = np.array(linear_fishes)
+
+        fig, ax = plt.subplots(figsize=(6, 8), nrows=2, sharex=True)
+
+        ax[0].plot(thetas, orig_fisher_infs, label="Original model")
+        ax[0].plot(thetas, linear_fishes, label=f"Optimal Q Linear Solver")
+
+        # empty plot to use up the blue color that the linear solver uses
+        ax[1].plot([0.1, 0.9], [0, 0])
+        ax[1].plot([0.1, 0.9], [0, 0])
+
+        for solver in solvers:
+            print(f"Calculating for {solver.name}")
+            fisher_storage = list()
+            for theta in tqdm(thetas):
+                q, _, _ = binom_optimal_privacy(solver, n, epsilon, theta)
+                f = fisher_information_privatized(q, n, theta)
+                fisher_storage.append(f)
+            fisher_storage = np.array(fisher_storage)
+
+            ax[0].plot(thetas, fisher_storage, label=f"Optimal Q {solver.name}")
+            ax[1].plot(
+                thetas,
+                linear_fishes - fisher_storage,
+                label=f"Difference from optimal {solver.name}",
+            )
+
+        ax[1].set_xlabel(r"$\theta$")
+        ax[0].set_ylabel(r"$I(\theta, Q)$")
+        ax[1].set_ylabel(r"$I(\theta, Q_{opt}) - I(\theta, Q)$")
+        fig.suptitle(rf"$n={n}, \epsilon={epsilon}$")
+        ax[0].legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    @staticmethod
+    def compare_runtimes(solvers, ns, theta, epsilon, log=False, n_restarts: int = 10):
+
+        avg_times = list()
+        stds = list()
 
         for solver in solvers:
             print(f"Calculating for {solver.name}")
             solver_times = list()
+            solver_stds = list()
             for n in tqdm(ns):
-                t_start = time()
-                q, status, _ = binom_optimal_privacy(solver, n, epsilon, theta)
-                t_end = time()
+                times_for_n = list()
+                for _ in range(n_restarts):
+                    t_start = time()
+                    _, _, _ = binom_optimal_privacy(solver, n, epsilon, theta)
+                    t_end = time()
 
-                solver_times.append(t_end - t_start)
-            times.append(solver_times)
+                    time_taken = t_end - t_start
+
+                    times_for_n.append(time_taken)
+                avg_time = np.mean(times_for_n)
+                std_time = np.std(times_for_n)
+                solver_times.append(avg_time)
+                solver_stds.append(std_time)
+
+            avg_times.append(solver_times)
+            stds.append(solver_stds)
+
+        avg_times = np.array(avg_times)
+        stds = np.array(stds)
 
         fig, ax = plt.subplots(figsize=(8, 6))
 
         for i in range(len(solvers)):
-            ax.plot(ns, times[i], label=solvers[i].name)
+            ax.plot(ns, avg_times[i], label=solvers[i].name)
+            ax.fill_between(ns, avg_times[i] - stds[i], avg_times[i] + stds[i], alpha=0.3)
         ax.set_xlabel("$n$")
         ax.set_ylabel("Time (s)")
         ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$")
@@ -166,11 +234,11 @@ class DP_tester:
     def max_discrepancy_between_two_solvers(
         solver1, solver2, ns, epsilons, sampled_thetas=100
     ):
-        thetas = np.linspace(1e-1, 1 - 1e-1, sampled_thetas)
+        thetas = np.linspace(1e-2, 1 - 1e-2, sampled_thetas)
 
         discrepancies = np.zeros(shape=(len(ns), len(epsilons)))
 
-        for i, n in enumerate(ns):
+        for i, n in tqdm(enumerate(ns)):
             for j, eps in enumerate(epsilons):
                 abs_discrepancies = list()
                 for t in thetas:

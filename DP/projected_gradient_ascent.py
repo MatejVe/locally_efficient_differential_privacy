@@ -4,8 +4,11 @@ import cvxpy as cp
 import numpy as np
 from scipy.stats import binom
 
-from DP.utils import (binom_derivative, binom_optimal_privacy, fisher_gradient,
-                      fisher_information_privatized, is_epsilon_private)
+from DP.utils import (
+    fisher_gradient,
+    fisher_information_privatized,
+    is_epsilon_private,
+)
 
 
 def initialize_projection_solver(
@@ -74,10 +77,8 @@ class PGA:
             # we need these bonkers gradients
             # This is why we cannot simply bound the gradients
             # to say [-1, 1]
-            grad_I[(grad_I > 10000) | (grad_I < -10000)] = (
-                grad_I[(grad_I > 10000) | (grad_I < -10000)] / 2
-            )
-            grad_I[(grad_I > 1e7) | (grad_I < -1e7)] = 0
+            grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 10])
+            grad_I[-1, :] = 0
 
             q_next = q + grad_I / np.sqrt(100 * (i + 1))
 
@@ -103,4 +104,3 @@ class PGA:
             status = "Max iterations reached without convergence"
 
         return {"Q_matrix": q, "status": status, "history": history}
-
