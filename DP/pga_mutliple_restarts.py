@@ -1,0 +1,46 @@
+import sys
+import os
+
+sys.path.append(os.path.dirname(sys.path[0]))
+
+from DP.pga_with_edge_traversal import PGAWithEdgeTraversal
+from DP.utils import fisher_information_privatized
+import numpy as np
+
+
+class PGAETMultipleRestarts:
+    name = "PGAETMultipleRestarts"
+
+    def __init__(self, n_restarts: int = 10):
+        self.n_restarts = n_restarts
+
+    def __call__(
+            self,
+            p_theta,
+            p_theta_dot,
+            theta,
+            epsilon,
+            n_trials,
+            tol=1e-3,
+            max_iter=300,
+    ):
+        best_fish = -np.inf
+        best_q = None
+        stat = None
+        history = None
+
+        for _ in range(self.n_restarts):
+            pga = PGAWithEdgeTraversal()
+            results = pga(p_theta, p_theta_dot, theta, epsilon, n_trials, tol, max_iter)
+            q = results["Q_matrix"]
+            status = results["status"]
+            hist = results["history"]
+            fish_value = fisher_information_privatized(q, n_trials, theta)
+
+            if fish_value > best_fish:
+                best_fish = fish_value
+                best_q = q
+                stat = status
+                history = hist
+
+        return {"Q_matrix": best_q, "status": stat, "history": history}
