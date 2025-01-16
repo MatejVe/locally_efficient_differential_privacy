@@ -17,11 +17,11 @@ from DP.linear_solver import LinearSolver
 
 class DP_tester:
     @staticmethod
-    def plot_fisher_infos(solver, ns: list, epsilon: float, n_thetas: int = 50):
+    def plot_fisher_infos(solver, ns: list, epsilon: float, n_thetas: int = 50, include_original=True):
         ncols = 2
         nrows = len(ns) // 2
 
-        thetas = np.linspace(1e-2, 1 - 1e-2, n_thetas)
+        thetas = np.linspace(1e-1, 1 - 1e-1, n_thetas)
 
         fig, axes = plt.subplots(
             ncols=ncols, nrows=nrows, figsize=(8, 3 * nrows), sharey=True, sharex=True
@@ -35,14 +35,15 @@ class DP_tester:
                 q, status, history = binom_optimal_privacy(solver, n, epsilon, theta)
                 finfo = fisher_information_privatized(q, n, theta)
                 privatized_fisher_infs.append(finfo)
-            axes[i].plot(thetas, orig_fisher_infs, label="Original model")
+            if include_original:
+                axes[i].plot(thetas, orig_fisher_infs, label="Unsanitized data")
             axes[i].plot(thetas, privatized_fisher_infs, label="Optimal Private Q")
-            axes[i].set_xlabel(r"$\theta$")
+            axes[i].set_xlabel(r"$\theta$ (success probability parameter)")
             axes[i].set_ylabel(r"$I(\theta, Q)$")
             axes[i].set_title(f"$n={n}$")
         axes[0].legend()
         plt.suptitle(
-            f"Binomial model Fisher information, solver {solver.name}, epsilon {epsilon}"
+            fr"Binomial model Fisher information, solver {solver.name}, $\epsilon = {epsilon}$"
         )
         plt.tight_layout()
         plt.show()
@@ -76,7 +77,7 @@ class DP_tester:
             color="green",
         )
         plt.legend()
-        plt.xlabel(r"$\epsilon$")
+        plt.xlabel(r"$\epsilon$ (privacy parameter)")
         plt.ylabel(r"$I(\theta)$")
         plt.title(
             "Fisher information as a function of epsilon \n"
@@ -87,7 +88,7 @@ class DP_tester:
 
     @staticmethod
     def compare_fisher_two_solvers(solver1, solver2, n, epsilon, n_thetas=50):
-        thetas = np.linspace(1e-2, 1 - 1e-2, n_thetas)
+        thetas = np.linspace(1e-1, 1 - 1e-1, n_thetas)
 
         orig_fisher_infs = fisher_information_binom(n, thetas)
 
@@ -114,7 +115,7 @@ class DP_tester:
 
         fig, ax = plt.subplots(figsize=(6, 4))
 
-        ax.plot(thetas, orig_fisher_infs, label="Original model")
+        ax.plot(thetas, orig_fisher_infs, label="Unsanitized data")
         ax.plot(thetas, solver1_fisher_infs, label=f"Optimal Q {solver1.name}")
         ax.plot(thetas, solver2_fisher_infs, label=f"Optimal Q {solver2.name}")
         converged_solver2 = np.array(converged_solver2)
@@ -129,7 +130,7 @@ class DP_tester:
             s=50,
             label=f"{solver2.name} not converged",
         )
-        ax.set_xlabel(r"$\theta$")
+        ax.set_xlabel(r"$\theta$ (success probability parameter)")
         ax.set_ylabel(r"$I(\theta, Q)$")
         ax.set_title(
             rf"$n={n}, \epsilon={epsilon}$, solver 1 {solver1.name}, solver 2 {solver2.name}"
@@ -141,7 +142,7 @@ class DP_tester:
 
     @staticmethod
     def compare_fisher_multiple_solvers(solvers, n, epsilon, n_thetas=50):
-        thetas = np.linspace(1e-2, 1 - 1e-2, n_thetas)
+        thetas = np.linspace(1e-1, 1 - 1e-1, n_thetas)
 
         orig_fisher_infs = fisher_information_binom(n, thetas)
         linear_fishes = list()
@@ -153,7 +154,7 @@ class DP_tester:
 
         fig, ax = plt.subplots(figsize=(6, 8), nrows=2, sharex=True)
 
-        ax[0].plot(thetas, orig_fisher_infs, label="Original model")
+        ax[0].plot(thetas, orig_fisher_infs, label="Unsanitized data")
         ax[0].plot(thetas, linear_fishes, label=f"Optimal Q Linear Solver")
 
         # empty plot to use up the blue color that the linear solver uses
@@ -176,7 +177,7 @@ class DP_tester:
                 label=f"Difference from optimal {solver.name}",
             )
 
-        ax[1].set_xlabel(r"$\theta$")
+        ax[1].set_xlabel(r"$\theta$ (success probability parameter)")
         ax[0].set_ylabel(r"$I(\theta, Q)$")
         ax[1].set_ylabel(r"$I(\theta, Q_{opt}) - I(\theta, Q)$")
         fig.suptitle(rf"$n={n}, \epsilon={epsilon}$")
@@ -187,15 +188,18 @@ class DP_tester:
 
     @staticmethod
     def compare_runtimes(solvers, ns, theta, epsilon, log=False, n_restarts: int = 10):
+        """ns is a list of max values of n to test for"""
 
         avg_times = list()
         stds = list()
 
-        for solver in solvers:
+        for i in range(len(solvers)):
+            solver = solvers[i]
             print(f"Calculating for {solver.name}")
             solver_times = list()
             solver_stds = list()
-            for n in tqdm(ns):
+            n_max = ns[i]
+            for n in range(1, n_max + 1):
                 times_for_n = list()
                 for _ in range(n_restarts):
                     t_start = time()
@@ -209,7 +213,7 @@ class DP_tester:
                 std_time = np.std(times_for_n)
                 solver_times.append(avg_time)
                 solver_stds.append(std_time)
-
+                
             avg_times.append(solver_times)
             stds.append(solver_stds)
 
@@ -221,7 +225,7 @@ class DP_tester:
         for i in range(len(solvers)):
             ax.plot(ns, avg_times[i], label=solvers[i].name)
             ax.fill_between(ns, avg_times[i] - stds[i], avg_times[i] + stds[i], alpha=0.3)
-        ax.set_xlabel("$n$")
+        ax.set_xlabel("n (input alphabet size)")
         ax.set_ylabel("Time (s)")
         ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$")
         if log:
@@ -261,7 +265,7 @@ class DP_tester:
             cmap="coolwarm",
         )
         plt.colorbar(label="Max Error")
-        plt.xlabel("n (sample sizes)")
+        plt.xlabel("n (input alphabet size)")
         plt.ylabel("ε (epsilon values)")
         plt.title("Maximum Error Between Two Solvers for Sampled Thetas")
         plt.show()
