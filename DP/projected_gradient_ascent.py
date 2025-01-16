@@ -52,7 +52,7 @@ class PGA:
     name = "PGA"
 
     def __call__(
-        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=1000
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-4, max_iter=200
     ):
         Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
             n_trials + 1
@@ -81,6 +81,7 @@ class PGA:
             grad_I[-1, :] = 0
 
             q_next = q + grad_I / np.sqrt(100 * (i + 1))
+            q_next = np.vstack([q_next[:-1,:], 1 - np.sum(q_next[:-1,:], axis=0)])
 
             if not is_epsilon_private(q_next, epsilon):
                 Q_param.value = q_next
@@ -94,7 +95,7 @@ class PGA:
                 status = f"Converged after {i+1} iterations."
                 break
 
-            if abs(fish - fish_next) < 1e-8:
+            if abs(fish - fish_next) < 1e-4:
                 status = f"Converged after {i+1} iteratons."
                 break
 
