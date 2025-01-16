@@ -108,7 +108,7 @@ def fisher_gradient(
     return gradient_matrix.T
 
 
-def is_epsilon_private(Q: np.ndarray, epsilon: float) -> bool:
+def is_epsilon_private(Q: np.ndarray, epsilon: float, tol=1e-6) -> bool:
     """
     Checks whether the matrix Q is epsilon private.
 
@@ -128,22 +128,26 @@ def is_epsilon_private(Q: np.ndarray, epsilon: float) -> bool:
         return False
 
     n_rows, n_cols = Q.shape
-
-    for i in range(n_cols):
-        col = Q[:, i]
-        if np.sum(col) != 1.0:
-            return False
-
     for i in range(n_rows):
         row = Q[i]
 
         for j in range(n_cols):
             for j_prime in range(n_cols):
                 if j != j_prime:
-                    if np.exp(-epsilon) * row[j_prime] > row[j]:
+                    if np.exp(-epsilon) * row[j_prime] > row[j] + tol:
                         return False
-                    if row[j] > np.exp(epsilon) * row[j_prime]:
+                    if row[j] > np.exp(epsilon) * row[j_prime] + tol:
                         return False
+    return True
+
+
+def is_column_stochastic(Q: np.ndarray) -> bool:
+    ncols = Q.shape[1]
+    for i in range(ncols):
+        col = Q[:, i]
+        if np.sum(col) != 1.0:
+            return False
+
     return True
 
 
