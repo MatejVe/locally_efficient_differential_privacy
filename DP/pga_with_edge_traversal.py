@@ -43,24 +43,79 @@ def initialize_projection_solver(
     return prob, Q_var, Q_param
 
 
+def project_onto_feasible_set(prob: cp.Problem, Q_var: cp.Variable, Q_param: cp.Parameter, q_to_project: np.ndarray):
+    Q_var.value = q_to_project
+    Q_param.value = q_to_project
+    prob.solve(solver=cp.SCS)
+    return Q_var.value
+
+
 def linesearch(
     q_initial: np.ndarray,
     direction: np.ndarray,
     n_trials: int,
     theta: float,
-    alpha_max=3.0,
+    epsilon: float,
+    alpha_min=1.0,
+    alpha_max=5.0,
+    num_steps=10,
 ):
+    """
+    Perform a constrained line search to find the optimal alpha that maximizes
+    fisher_information_privatized while satisfying epsilon-privacy constraints.
 
-    q_new1 = q_initial + alpha_max * direction
-    q_new2 = q_initial - alpha_max * direction
+    Parameters
+    ----------
+    q_initial : np.ndarray
+        Initial Q matrix.
+    direction : np.ndarray
+        Direction for line search.
+    n_trials : int
+        Number of trials for the Q matrix.
+    theta : float
+        Parameter value(s) for Fisher information evaluation.
+    epsilon : float
+        Privacy parameter.
+    alpha_max : float, optional
+        Maximum value for alpha.
+    num_steps : int, optional
+        Number of alpha steps to evaluate in the line search.
 
-    fish1 = fisher_information_privatized(q_new1, n_trials, theta)
-    fish2 = fisher_information_privatized(q_new2, n_trials, theta)
+    Returns
+    -------
+    np.ndarray
+        The updated Q matrix corresponding to the optimal alpha.
+    """
+    # Generate candidate alpha values
+    alphas = np.linspace(alpha_min, alpha_max, num_steps)
+    best_fish = -np.inf
+    best_q = None
 
-    if fish1 >= fish2:
-        return q_new1
-    else:
-        return q_new2
+    for alpha in alphas:
+        # Compute candidate Q matrix
+        q_candidate = q_initial + alpha * direction
+        q_candidate = np.vstack([q_candidate[:-1,:], 1 - np.sum(q_candidate[:-1,:], axis=0)])
+
+        # Check feasibility
+        if is_epsilon_private(q_candidate, epsilon, tol=1e-3):
+            # Compute Fisher information
+            fish_value = fisher_information_privatized(q_candidate, n_trials, theta)
+
+            # Update best solution if the Fisher information is higher
+            if fish_value > best_fish:
+                best_fish = fish_value
+                best_q = q_candidate
+
+    # Return the best feasible Q matrix found
+    if best_q is None:
+        #print(q_initial)
+        #print(direction)
+        #print(epsilon)
+        #raise ValueError("No feasible solution found during line search.")
+        #print("No feasible solution found during line search, returning the original value.")
+        return q_initial
+
+    return best_q
 
 
 class PGAWithEdgeTraversal:
@@ -78,9 +133,8 @@ class PGAWithEdgeTraversal:
         theta,
         epsilon,
         n_trials,
-        tol=1e-6,
-        max_iter=2000,
-        step_size=0.05,
+        tol=1e-5,
+        max_iter=300,
     ):
         """
         Execute the PGA algorithm to optimize Q matrix.
@@ -118,12 +172,11 @@ class PGAWithEdgeTraversal:
             n_trials + 1
         ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.1)
 
-        # If needed, you can project initial Q onto the feasible set.
-        # Q_init = project_onto_feasible_set(Q_init, epsilon)
-
         projection_problem, Q_var, Q_param = initialize_projection_solver(
             n_trials, epsilon
         )
+        # inital projection
+        Q_init = project_onto_feasible_set(projection_problem, Q_var, Q_param, Q_init)
 
         q = Q_init
         current_fish = fisher_information_privatized(q, n_trials, theta)
@@ -134,13 +187,20 @@ class PGAWithEdgeTraversal:
         second_projection = None
 
         for i in range(max_iter):
+            q_linesearch = None
+            
             if first_projection is not None and second_projection is not None:
                 # If we have two projections, use them to perform a line search step
                 diff = second_projection - first_projection
-                q_next = linesearch(q, diff, n_trials, theta)
+                diff[-1, :] = 0
+                q_linesearch = linesearch(q, diff, n_trials, theta, epsilon)
                 # Reset projections after line search
                 first_projection = None
                 second_projection = None
+                # if linesearch didn't find a feasible alpha value,
+                # it simply returned the same value
+                # we have to be careful not to trigger algorithm termination
+                q_next = q_linesearch
             else:
                 # Compute gradient of Fisher information
                 grad_I = fisher_gradient(p_theta, p_theta_dot, q)
@@ -148,19 +208,18 @@ class PGAWithEdgeTraversal:
                 # Optional: gradient clipping or scaling if needed
                 # For example:
                 # grad_I = np.clip(grad_I, -1e5, 1e5)
-                grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 10])
+                grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 0.1])
                 grad_I[-1, :] = 0
 
                 # Perform the gradient ascent step
-                q_next = q + grad_I #/ np.sqrt(100 * (i + 1))
+                q_next = q + grad_I #/ np.sqrt(20 * (i + 1))
+                # fix the last row (column stochasticity)
+                q_next = np.vstack([q_next[:-1,:], 1 - np.sum(q_next[:-1,:], axis=0)])
 
                 # Check feasibility; if not private, project onto feasible region
-                if not is_epsilon_private(q_next, epsilon):
+                if not is_epsilon_private(q_next, epsilon, tol=1e-10):
                     history.append(q_next.copy())
-                    Q_param.value = q_next
-                    Q_var.value = q_next
-                    projection_problem.solve(solver=cp.SCS)
-                    q_projected = Q_var.value
+                    q_projected = project_onto_feasible_set(projection_problem, Q_var, Q_param, q_next)
 
                     history.append(q_projected.copy())
                     if first_projection is not None:
@@ -176,9 +235,11 @@ class PGAWithEdgeTraversal:
             # Check for convergence
             # 1. If Q hasn't moved significantly
             # 2. If Fisher information improvement is below threshold
+            # 3. q and q_linesearch can't be equal
             if (
                 np.allclose(q, q_next, rtol=tol, atol=tol)
-                or abs(current_fish - next_fish) < 1e-5
+                and abs(current_fish - next_fish) < 1e-5
+                and not np.array_equal(q, q_linesearch)
             ):
                 status = f"Converged after {i+1} iterations."
                 q = q_next
