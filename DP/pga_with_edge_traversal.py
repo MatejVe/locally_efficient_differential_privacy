@@ -170,7 +170,7 @@ class PGAWithEdgeTraversal:
         # Initialize Q with random perturbation around a uniform matrix.
         Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
             n_trials + 1
-        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.1)
+        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.5)
 
         projection_problem, Q_var, Q_param = initialize_projection_solver(
             n_trials, epsilon
@@ -238,7 +238,7 @@ class PGAWithEdgeTraversal:
             # 3. q and q_linesearch can't be equal
             if (
                 np.allclose(q, q_next, rtol=tol, atol=tol)
-                and abs(current_fish - next_fish) < 1e-5
+                and abs(current_fish - next_fish) < 1e-3
                 and not np.array_equal(q, q_linesearch)
             ):
                 status = f"Converged after {i+1} iterations."

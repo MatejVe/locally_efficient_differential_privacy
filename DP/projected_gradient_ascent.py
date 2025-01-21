@@ -52,16 +52,19 @@ class PGA:
     name = "PGA"
 
     def __call__(
-        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-4, max_iter=200
+        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=1000
     ):
         Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
             n_trials + 1
-        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.01)
-        # Q_init = project_onto_feasible_set(Q_init, epsilon)
+        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.1)
 
         projection_problem, Q_var, Q_param = initialize_projection_solver(
             n_trials, epsilon
         )
+        Q_param.value = Q_init
+        Q_var.value = Q_init
+        projection_problem.solve(solver=cp.SCS)
+        Q_init = Q_var.value
 
         q = Q_init
         fish = fisher_information_privatized(q, n_trials, theta)
@@ -69,18 +72,11 @@ class PGA:
 
         for i in range(max_iter):
             grad_I = fisher_gradient(p_theta, p_theta_dot, q)
-            # grad_I[-1, :] = np.zeros_like(grad_I[-1, :])
 
-            # We need to clip the gradient since for very small rows
-            # that tend to 0 we will get bonkers gradients
-            # On the other hand, at extreme values of theta
-            # we need these bonkers gradients
-            # This is why we cannot simply bound the gradients
-            # to say [-1, 1]
-            grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 10])
+            #grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 1])
             grad_I[-1, :] = 0
 
-            q_next = q + grad_I / np.sqrt(100 * (i + 1))
+            q_next = q + grad_I / np.sqrt(200 * (i + 1))
             q_next = np.vstack([q_next[:-1,:], 1 - np.sum(q_next[:-1,:], axis=0)])
 
             if not is_epsilon_private(q_next, epsilon):
@@ -95,7 +91,7 @@ class PGA:
                 status = f"Converged after {i+1} iterations."
                 break
 
-            if abs(fish - fish_next) < 1e-4:
+            if abs(fish - fish_next) < 1e-6:
                 status = f"Converged after {i+1} iteratons."
                 break
 

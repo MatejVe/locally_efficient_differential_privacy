@@ -200,6 +200,7 @@ class DP_tester:
             solver_stds = list()
             n_max = ns[i]
             for n in range(1, n_max + 1):
+                print(f"Calculating for n={n}")
                 times_for_n = list()
                 for _ in range(n_restarts):
                     t_start = time()
@@ -213,18 +214,16 @@ class DP_tester:
                 std_time = np.std(times_for_n)
                 solver_times.append(avg_time)
                 solver_stds.append(std_time)
-                
+
             avg_times.append(solver_times)
             stds.append(solver_stds)
-
-        avg_times = np.array(avg_times)
-        stds = np.array(stds)
 
         fig, ax = plt.subplots(figsize=(8, 6))
 
         for i in range(len(solvers)):
-            ax.plot(ns, avg_times[i], label=solvers[i].name)
-            ax.fill_between(ns, avg_times[i] - stds[i], avg_times[i] + stds[i], alpha=0.3)
+            ns_to_plot = np.arange(1, ns[i] + 1)
+            ax.plot(ns_to_plot, avg_times[i], label=solvers[i].name)
+            ax.fill_between(ns_to_plot, np.array(avg_times[i]) - np.array(stds[i]), np.array(avg_times[i]) + np.array(stds[i]), alpha=0.3)
         ax.set_xlabel("n (input alphabet size)")
         ax.set_ylabel("Time (s)")
         ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$")
