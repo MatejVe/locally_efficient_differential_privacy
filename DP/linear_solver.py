@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 from scipy.optimize import linprog
+from DP.utils import reduce_optimal_matrix
 
 
 def generate_staircase_matrix(k: int, epsilon: float) -> np.ndarray:
@@ -96,11 +97,12 @@ def solve_linear_program(
 class LinearSolver:
     name = "Linear solver"
 
-    def __call__(self, p_theta, p_theta_dot, theta, epsilon, n_trials) -> Dict:
-        S = generate_staircase_matrix(n_trials + 1, epsilon)
+    def __call__(self, p_theta, p_theta_dot, epsilon, k) -> Dict:
+        S = generate_staircase_matrix(k, epsilon)
         mus = compute_mu(S, p_theta, p_theta_dot)
-        opt_theta = solve_linear_program(S, n_trials + 1, mus)
+        opt_theta = solve_linear_program(S, k, mus)
         Q_matrix = S @ np.diag(opt_theta)
         Q_matrix = Q_matrix.T
+        Q_matrix = reduce_optimal_matrix(Q_matrix)
 
         return {"Q_matrix": Q_matrix, "status": "Converged"}

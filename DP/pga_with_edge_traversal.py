@@ -7,34 +7,33 @@ from DP.utils import fisher_gradient, fisher_information_privatized, is_epsilon_
 
 
 def initialize_projection_solver(
-    n_trials: int, epsilon: float
+    k: int, epsilon: float
 ) -> Tuple[cp.Problem, cp.Variable, cp.Parameter]:
-    n_plus_1 = n_trials + 1
-    Q_var = cp.Variable((n_plus_1, n_plus_1))
-    Q_param = cp.Parameter((n_plus_1, n_plus_1))
+    Q_var = cp.Variable((k, k))
+    Q_param = cp.Parameter((k, k))
 
     objective = cp.Minimize(cp.sum_squares(Q_var - Q_param))
 
     constraints = []
     constraints += [Q_var >= 0]
 
-    for j in range(n_plus_1):
+    for j in range(k):
         constraints += [cp.sum(Q_var[:, j]) == 1]
 
     exp_eps = np.exp(epsilon)
     exp_neg_eps = np.exp(-epsilon)
-    for i in range(n_plus_1):
+    for i in range(k):
         Q_i = Q_var[i, :]
         constraints += [
             Q_i[j] - exp_neg_eps * Q_i[j_prime] >= 0
-            for j in range(n_plus_1)
-            for j_prime in range(n_plus_1)
+            for j in range(k)
+            for j_prime in range(k)
             if j < j_prime
         ]
         constraints += [
             exp_eps * Q_i[j_prime] - Q_i[j] >= 0
-            for j in range(n_plus_1)
-            for j_prime in range(n_plus_1)
+            for j in range(k)
+            for j_prime in range(k)
             if j < j_prime
         ]
 
@@ -53,8 +52,8 @@ def project_onto_feasible_set(prob: cp.Problem, Q_var: cp.Variable, Q_param: cp.
 def linesearch(
     q_initial: np.ndarray,
     direction: np.ndarray,
-    n_trials: int,
-    theta: float,
+    p_theta,
+    p_theta_dot,
     epsilon: float,
     alpha_min=1.0,
     alpha_max=5.0,
@@ -99,7 +98,7 @@ def linesearch(
         # Check feasibility
         if is_epsilon_private(q_candidate, epsilon, tol=1e-3):
             # Compute Fisher information
-            fish_value = fisher_information_privatized(q_candidate, n_trials, theta)
+            fish_value = fisher_information_privatized(q_candidate, p_theta, p_theta_dot)
 
             # Update best solution if the Fisher information is higher
             if fish_value > best_fish:
@@ -130,9 +129,8 @@ class PGAWithEdgeTraversal:
         self,
         p_theta,
         p_theta_dot,
-        theta,
         epsilon,
-        n_trials,
+        k,
         tol=1e-5,
         max_iter=300,
     ):
@@ -168,18 +166,18 @@ class PGAWithEdgeTraversal:
         """
 
         # Initialize Q with random perturbation around a uniform matrix.
-        Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
-            n_trials + 1
-        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.5)
+        Q_init = np.ones((k, k)) / (
+            k
+        ) + np.random.normal(size=(k, k), scale=0.5)
 
         projection_problem, Q_var, Q_param = initialize_projection_solver(
-            n_trials, epsilon
+            k, epsilon
         )
         # inital projection
         Q_init = project_onto_feasible_set(projection_problem, Q_var, Q_param, Q_init)
 
         q = Q_init
-        current_fish = fisher_information_privatized(q, n_trials, theta)
+        current_fish = fisher_information_privatized(q, p_theta, p_theta_dot)
         history = [q.copy()]
 
         # Track intermediate projections for line search logic
@@ -193,7 +191,7 @@ class PGAWithEdgeTraversal:
                 # If we have two projections, use them to perform a line search step
                 diff = second_projection - first_projection
                 diff[-1, :] = 0
-                q_linesearch = linesearch(q, diff, n_trials, theta, epsilon)
+                q_linesearch = linesearch(q, diff, p_theta, p_theta_dot, epsilon)
                 # Reset projections after line search
                 first_projection = None
                 second_projection = None
@@ -230,7 +228,7 @@ class PGAWithEdgeTraversal:
                     q_next = q_projected
 
             # Evaluate Fisher information at the candidate Q
-            next_fish = fisher_information_privatized(q_next, n_trials, theta)
+            next_fish = fisher_information_privatized(q_next, p_theta, p_theta_dot)
 
             # Check for convergence
             # 1. If Q hasn't moved significantly

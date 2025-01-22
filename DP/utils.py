@@ -151,7 +151,7 @@ def is_column_stochastic(Q: np.ndarray) -> bool:
     return True
 
 
-def fisher_information_privatized(Q: np.ndarray, n: int, theta: float) -> float:
+def fisher_information_privatized(Q: np.ndarray, p_theta: np.ndarray, p_theta_dot: np.ndarray) -> float:
     """
     Calculates the fisher information of the sanitazed data.
 
@@ -169,11 +169,10 @@ def fisher_information_privatized(Q: np.ndarray, n: int, theta: float) -> float:
     float
         fisher information
     """
-    p_theta = binom.pmf(np.arange(n + 1), n, theta)
-    p_theta_dot = [binom_derivative(i, n, theta) for i in range(n + 1)]
-
     numerator = np.power(Q @ p_theta_dot, 2)
     denominator = Q @ p_theta
+    # safeguard against very small denominators
+    denominator[denominator < 1e-12] = 1e-12
     return np.sum(numerator / denominator)
 
 
@@ -221,7 +220,7 @@ def binom_optimal_privacy(
     p_theta = binom.pmf(np.arange(k), n_trials, theta)
     p_theta_dot = np.array([binom_derivative(i, n_trials, theta) for i in range(k)])
 
-    result = solver(p_theta, p_theta_dot, theta, epsilon, n_trials)
+    result = solver(p_theta, p_theta_dot, epsilon, k)
 
     Q_matrix = result["Q_matrix"]
     Q_matrix = reduce_optimal_matrix(Q_matrix)

@@ -12,34 +12,33 @@ from DP.utils import (
 
 
 def initialize_projection_solver(
-    n_trials: int, epsilon: float
+    k: int, epsilon: float
 ) -> Tuple[cp.Problem, cp.Variable, cp.Parameter]:
-    n_plus_1 = n_trials + 1
-    Q_var = cp.Variable((n_plus_1, n_plus_1))
-    Q_param = cp.Parameter((n_plus_1, n_plus_1))
+    Q_var = cp.Variable((k, k))
+    Q_param = cp.Parameter((k, k))
 
     objective = cp.Minimize(cp.sum_squares(Q_var - Q_param))
 
     constraints = []
     constraints += [Q_var >= 0]
 
-    for j in range(n_plus_1):
+    for j in range(k):
         constraints += [cp.sum(Q_var[:, j]) == 1]
 
     exp_eps = np.exp(epsilon)
     exp_neg_eps = np.exp(-epsilon)
-    for i in range(n_plus_1):
+    for i in range(k):
         Q_i = Q_var[i, :]
         constraints += [
             Q_i[j] - exp_neg_eps * Q_i[j_prime] >= 0
-            for j in range(n_plus_1)
-            for j_prime in range(n_plus_1)
+            for j in range(k)
+            for j_prime in range(k)
             if j < j_prime
         ]
         constraints += [
             exp_eps * Q_i[j_prime] - Q_i[j] >= 0
-            for j in range(n_plus_1)
-            for j_prime in range(n_plus_1)
+            for j in range(k)
+            for j_prime in range(k)
             if j < j_prime
         ]
 
@@ -52,14 +51,14 @@ class PGA:
     name = "PGA"
 
     def __call__(
-        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=1000
+        self, p_theta, p_theta_dot, epsilon, k, tol=1e-6, max_iter=1000
     ):
-        Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
-            n_trials + 1
-        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.1)
+        Q_init = np.ones((k, k)) / (
+            k
+        ) + np.random.normal(size=(k, k), scale=0.1)
 
         projection_problem, Q_var, Q_param = initialize_projection_solver(
-            n_trials, epsilon
+            k, epsilon
         )
         Q_param.value = Q_init
         Q_var.value = Q_init
@@ -67,7 +66,7 @@ class PGA:
         Q_init = Q_var.value
 
         q = Q_init
-        fish = fisher_information_privatized(q, n_trials, theta)
+        fish = fisher_information_privatized(q, p_theta, p_theta_dot)
         history = [Q_init]
 
         for i in range(max_iter):
@@ -85,7 +84,7 @@ class PGA:
                 projection_problem.solve(solver=cp.SCS)
                 q_next = Q_var.value
 
-            fish_next = fisher_information_privatized(q_next, n_trials, theta)
+            fish_next = fisher_information_privatized(q_next, p_theta, p_theta_dot)
 
             if np.allclose(q, q_next, rtol=tol, atol=tol):
                 status = f"Converged after {i+1} iterations."
