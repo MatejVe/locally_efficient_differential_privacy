@@ -38,10 +38,7 @@ def fisher_gradient_modified(p_theta, p_theta_dot, q_mat, epsilon):
     return grad
 
 
-def fisher_information_privatized_modified(Q, n, theta, eps):
-    p_theta = binom.pmf(np.arange(n + 1), n, theta)
-    p_theta_dot = [binom_derivative(i, n, theta) for i in range(n + 1)]
-
+def fisher_information_privatized_modified(Q, p_theta, p_theta_dot, eps):
     numerator = np.power(Q @ p_theta_dot, 2)
     denominator = Q @ p_theta
     boundary_terms = 0
@@ -54,38 +51,37 @@ def fisher_information_privatized_modified(Q, n, theta, eps):
                     boundary_terms += (
                         (y / x - np.exp(-eps)) * (y / x - 1) * (y / x - np.exp(eps))
                     )
-    return np.sum(numerator / denominator) - 0.001**n * boundary_terms
+    return np.sum(numerator / denominator) - 0.001**len(p_theta) * boundary_terms
 
 
 def initialize_projection_solver(
-    n_trials: int, epsilon: float
+    k: int, epsilon: float
 ) -> Tuple[cp.Problem, cp.Variable, cp.Parameter]:
-    n_plus_1 = n_trials + 1
-    Q_var = cp.Variable((n_plus_1, n_plus_1))
-    Q_param = cp.Parameter((n_plus_1, n_plus_1))
+    Q_var = cp.Variable((k, k))
+    Q_param = cp.Parameter((k, k))
 
     objective = cp.Minimize(cp.sum_squares(Q_var - Q_param))
 
     constraints = []
     constraints += [Q_var >= 0]
 
-    for j in range(n_plus_1):
+    for j in range(k):
         constraints += [cp.sum(Q_var[:, j]) == 1]
 
     exp_eps = np.exp(epsilon)
     exp_neg_eps = np.exp(-epsilon)
-    for i in range(n_plus_1):
+    for i in range(k):
         Q_i = Q_var[i, :]
         constraints += [
             Q_i[j] - exp_neg_eps * Q_i[j_prime] >= 0
-            for j in range(n_plus_1)
-            for j_prime in range(n_plus_1)
+            for j in range(k)
+            for j_prime in range(k)
             if j < j_prime
         ]
         constraints += [
             exp_eps * Q_i[j_prime] - Q_i[j] >= 0
-            for j in range(n_plus_1)
-            for j_prime in range(n_plus_1)
+            for j in range(k)
+            for j_prime in range(k)
             if j < j_prime
         ]
 
@@ -97,16 +93,16 @@ def initialize_projection_solver(
 def linesearch(
     q_initial: np.ndarray,
     direction: np.ndarray,
-    n_trials: int,
-    theta: float,
+    p_theta,
+    p_theta_dot,
     alpha_max=0.1,
 ):
 
     q_new1 = q_initial + alpha_max * direction
     q_new2 = q_initial - alpha_max * direction
 
-    fish1 = fisher_information_privatized(q_new1, n_trials, theta)
-    fish2 = fisher_information_privatized(q_new2, n_trials, theta)
+    fish1 = fisher_information_privatized(q_new1, p_theta, p_theta_dot)
+    fish2 = fisher_information_privatized(q_new2, p_theta, p_theta_dot)
 
     if fish1 >= fish2:
         return q_new1
@@ -123,7 +119,7 @@ class PGAModifiedEdgeTraversal:
     name = "PGAMET"
 
     def __call__(
-        self, p_theta, p_theta_dot, theta, epsilon, n_trials, tol=1e-6, max_iter=2000
+        self, p_theta, p_theta_dot, epsilon, k, tol=1e-6, max_iter=2000
     ):
         """
         Execute the PGA algorithm to optimize Q matrix.
@@ -157,15 +153,15 @@ class PGAModifiedEdgeTraversal:
         """
 
         # Initialize Q with random perturbation around a uniform matrix.
-        Q_init = np.ones((n_trials + 1, n_trials + 1)) / (
-            n_trials + 1
-        ) + np.random.normal(size=(n_trials + 1, n_trials + 1), scale=0.1)
+        Q_init = np.ones((k, k)) / (
+            k
+        ) + np.random.normal(size=(k, k), scale=0.1)
 
         # If needed, you can project initial Q onto the feasible set.
         # Q_init = project_onto_feasible_set(Q_init, epsilon)
 
         projection_problem, Q_var, Q_param = initialize_projection_solver(
-            n_trials, epsilon
+            k, epsilon
         )
 
         Q_param.value = Q_init
@@ -175,7 +171,7 @@ class PGAModifiedEdgeTraversal:
 
         q = q_projected
         current_fish = fisher_information_privatized_modified(
-            q, n_trials, theta, epsilon
+            q, p_theta, p_theta_dot, epsilon
         )
         history = [q.copy()]
 
@@ -187,7 +183,7 @@ class PGAModifiedEdgeTraversal:
             if first_projection is not None and second_projection is not None:
                 # If we have two projections, use them to perform a line search step
                 diff = second_projection - first_projection
-                q_next = linesearch(q, diff, n_trials, theta)
+                q_next = linesearch(q, diff, p_theta, p_theta_dot)
                 # Reset projections after line search
                 first_projection = None
                 second_projection = None
@@ -200,7 +196,7 @@ class PGAModifiedEdgeTraversal:
                 grad_I = np.clip(grad_I, -1e5, 1e5)
 
                 # Perform the gradient ascent step
-                q_next = q + grad_I / np.sqrt(10 * n_trials * (i + 1))
+                q_next = q + grad_I / np.sqrt(10 * k * (i + 1))
 
                 # Check feasibility; if not private, project onto feasible region
                 if not is_epsilon_private(q_next, epsilon):
@@ -215,7 +211,7 @@ class PGAModifiedEdgeTraversal:
                         print(q_next)
                         print("grad_I")
                         print(grad_I)
-                        print(grad_I / np.sqrt(10 * n_trials * (i + 1)))
+                        print(grad_I / np.sqrt(10 * k * (i + 1)))
                     history.append(q_projected.copy())
                     if first_projection is not None:
                         second_projection = q_projected
@@ -226,7 +222,7 @@ class PGAModifiedEdgeTraversal:
 
             # Evaluate Fisher information at the candidate Q
             next_fish = fisher_information_privatized_modified(
-                q_next, n_trials, theta, epsilon
+                q_next, p_theta, p_theta_dot, epsilon
             )
 
             # Check for convergence

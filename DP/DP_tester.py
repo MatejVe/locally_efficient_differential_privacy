@@ -32,9 +32,8 @@ class DP_tester:
             orig_fisher_infs = fisher_information_binom(n, thetas)
             privatized_fisher_infs = list()
             for theta in thetas:
-                q, status, history = binom_optimal_privacy(solver, n, epsilon, theta)
-                finfo = fisher_information_privatized(q, n, theta)
-                privatized_fisher_infs.append(finfo)
+                q, _, _, best_fisher = binom_optimal_privacy(solver, n, epsilon, theta)
+                privatized_fisher_infs.append(best_fisher)
             if include_original:
                 axes[i].plot(thetas, orig_fisher_infs, label="Unsanitized data")
             axes[i].plot(thetas, privatized_fisher_infs, label="Optimal Private Q")
@@ -57,9 +56,8 @@ class DP_tester:
 
         fishers_private = list()
         for eps in tqdm(epsilons):
-            q_matrix, _, _ = binom_optimal_privacy(solver, n, eps, theta)
-            finfo = fisher_information_privatized(q_matrix, n, theta)
-            fishers_private.append(finfo)
+            q_matrix, _, _, best_fisher = binom_optimal_privacy(solver, n, eps, theta)
+            fishers_private.append(best_fisher)
 
         fig, ax = plt.subplots()
 
@@ -97,21 +95,19 @@ class DP_tester:
         converged_solver1 = list()
         converged_solver2 = list()
         for theta in tqdm(thetas):
-            q1, status, _ = binom_optimal_privacy(solver1, n, epsilon, theta)
+            q1, status, _, best_fisher = binom_optimal_privacy(solver1, n, epsilon, theta)
             if "Converged" in status:
                 converged_solver1.append(True)
             else:
                 converged_solver1.append(False)
-            finfo1 = fisher_information_privatized(q1, n, theta)
-            solver1_fisher_infs.append(finfo1)
+            solver1_fisher_infs.append(best_fisher)
 
-            q2, status, _ = binom_optimal_privacy(solver2, n, epsilon, theta)
+            q2, status, _, best_fisher = binom_optimal_privacy(solver2, n, epsilon, theta)
             if "Converged" in status:
                 converged_solver2.append(True)
             else:
                 converged_solver2.append(False)
-            finfo2 = fisher_information_privatized(q2, n, theta)
-            solver2_fisher_infs.append(finfo2)
+            solver2_fisher_infs.append(best_fisher)
 
         fig, ax = plt.subplots(figsize=(6, 4))
 
@@ -147,9 +143,8 @@ class DP_tester:
         orig_fisher_infs = fisher_information_binom(n, thetas)
         linear_fishes = list()
         for theta in thetas:
-            q, _, _ = binom_optimal_privacy(LinearSolver(), n, epsilon, theta)
-            f = fisher_information_privatized(q, n, theta)
-            linear_fishes.append(f)
+            q, _, _, best_fisher = binom_optimal_privacy(LinearSolver(), n, epsilon, theta)
+            linear_fishes.append(best_fisher)
         linear_fishes = np.array(linear_fishes)
 
         fig, ax = plt.subplots(figsize=(6, 8), nrows=2, sharex=True)
@@ -165,9 +160,8 @@ class DP_tester:
             print(f"Calculating for {solver.name}")
             fisher_storage = list()
             for theta in tqdm(thetas):
-                q, _, _ = binom_optimal_privacy(solver, n, epsilon, theta)
-                f = fisher_information_privatized(q, n, theta)
-                fisher_storage.append(f)
+                q, _, _, best_fisher = binom_optimal_privacy(solver, n, epsilon, theta)
+                fisher_storage.append(best_fisher)
             fisher_storage = np.array(fisher_storage)
 
             ax[0].plot(thetas, fisher_storage, label=f"Optimal Q {solver.name}")
@@ -204,7 +198,7 @@ class DP_tester:
                 times_for_n = list()
                 for _ in range(n_restarts):
                     t_start = time()
-                    _, _, _ = binom_optimal_privacy(solver, n, epsilon, theta)
+                    _, _, _, _ = binom_optimal_privacy(solver, n, epsilon, theta)
                     t_end = time()
 
                     time_taken = t_end - t_start
@@ -245,13 +239,11 @@ class DP_tester:
             for j, eps in enumerate(epsilons):
                 abs_discrepancies = list()
                 for t in thetas:
-                    q1, _, _ = binom_optimal_privacy(solver1, n, eps, t)
-                    fish1 = fisher_information_privatized(q1, n, t)
+                    q1, _, _, best_fish1 = binom_optimal_privacy(solver1, n, eps, t)
 
-                    q2, _, _ = binom_optimal_privacy(solver2, n, eps, t)
-                    fish2 = fisher_information_privatized(q2, n, t)
+                    q2, _, _, best_fish2 = binom_optimal_privacy(solver2, n, eps, t)
 
-                    abs_discrepancies.append(abs(fish1 - fish2))
+                    abs_discrepancies.append(abs(best_fish1 - best_fish2))
                 discrepancies[i, j] = np.max(abs_discrepancies)
 
         # Plotting the discrepancies as a heatmap

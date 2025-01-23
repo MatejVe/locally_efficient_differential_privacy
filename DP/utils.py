@@ -227,5 +227,6 @@ def binom_optimal_privacy(
     # status and history are not necessarily implemented
     status = result.get("status", None)
     history = result.get("history", None)
+    best_fisher = fisher_information_privatized(Q_matrix, p_theta, p_theta_dot)
 
-    return (Q_matrix, status, history)
+    return (Q_matrix, status, history, best_fisher)
