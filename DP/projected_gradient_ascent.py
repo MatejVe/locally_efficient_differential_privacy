@@ -75,7 +75,7 @@ class PGA:
             #grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 1])
             grad_I[-1, :] = 0
 
-            q_next = q + grad_I / np.sqrt(200 * (i + 1))
+            q_next = q + 0.001 * grad_I #/ np.sqrt(200 * (i + 1))
             q_next = np.vstack([q_next[:-1,:], 1 - np.sum(q_next[:-1,:], axis=0)])
 
             if not is_epsilon_private(q_next, epsilon):
