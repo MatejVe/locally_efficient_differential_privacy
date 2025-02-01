@@ -151,7 +151,9 @@ def is_column_stochastic(Q: np.ndarray) -> bool:
     return True
 
 
-def fisher_information_privatized(Q: np.ndarray, p_theta: np.ndarray, p_theta_dot: np.ndarray) -> float:
+def fisher_information_privatized(
+    Q: np.ndarray, p_theta: np.ndarray, p_theta_dot: np.ndarray
+) -> float:
     """
     Calculates the fisher information of the sanitazed data.
 

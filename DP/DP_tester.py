@@ -17,7 +17,9 @@ from DP.linear_solver import LinearSolver
 
 class DP_tester:
     @staticmethod
-    def plot_fisher_infos(solver, ns: list, epsilon: float, n_thetas: int = 50, include_original=True):
+    def plot_fisher_infos(
+        solver, ns: list, epsilon: float, n_thetas: int = 50, include_original=True
+    ):
         ncols = 2
         nrows = len(ns) // 2
 
@@ -42,7 +44,7 @@ class DP_tester:
             axes[i].set_title(f"$n={n}$")
         axes[0].legend()
         plt.suptitle(
-            fr"Binomial model Fisher information, solver {solver.name}, $\epsilon = {epsilon}$"
+            rf"Binomial model Fisher information, solver {solver.name}, $\epsilon = {epsilon}$"
         )
         plt.tight_layout()
         plt.show()
@@ -95,14 +97,18 @@ class DP_tester:
         converged_solver1 = list()
         converged_solver2 = list()
         for theta in tqdm(thetas):
-            q1, status, _, best_fisher = binom_optimal_privacy(solver1, n, epsilon, theta)
+            q1, status, _, best_fisher = binom_optimal_privacy(
+                solver1, n, epsilon, theta
+            )
             if "Converged" in status:
                 converged_solver1.append(True)
             else:
                 converged_solver1.append(False)
             solver1_fisher_infs.append(best_fisher)
 
-            q2, status, _, best_fisher = binom_optimal_privacy(solver2, n, epsilon, theta)
+            q2, status, _, best_fisher = binom_optimal_privacy(
+                solver2, n, epsilon, theta
+            )
             if "Converged" in status:
                 converged_solver2.append(True)
             else:
@@ -143,7 +149,9 @@ class DP_tester:
         orig_fisher_infs = fisher_information_binom(n, thetas)
         linear_fishes = list()
         for theta in thetas:
-            q, _, _, best_fisher = binom_optimal_privacy(LinearSolver(), n, epsilon, theta)
+            q, _, _, best_fisher = binom_optimal_privacy(
+                LinearSolver(), n, epsilon, theta
+            )
             linear_fishes.append(best_fisher)
         linear_fishes = np.array(linear_fishes)
 
@@ -214,10 +222,18 @@ class DP_tester:
 
         fig, ax = plt.subplots(figsize=(8, 6))
 
+        formats = ["o", "s", "x", "d", "v", "^", "<", ">"]
         for i in range(len(solvers)):
             ns_to_plot = np.arange(1, ns[i] + 1)
-            ax.plot(ns_to_plot, avg_times[i], label=solvers[i].name)
-            ax.fill_between(ns_to_plot, np.array(avg_times[i]) - np.array(stds[i]), np.array(avg_times[i]) + np.array(stds[i]), alpha=0.3)
+            ax.errorbar(
+                ns_to_plot,
+                avg_times[i],
+                yerr=stds[i],
+                label=solvers[i].name,
+                fmt=formats[i],
+            )
+            # ax.plot(ns_to_plot, avg_times[i], label=solvers[i].name)
+            # ax.fill_between(ns_to_plot, np.array(avg_times[i]) - np.array(stds[i]), np.array(avg_times[i]) + np.array(stds[i]), alpha=0.3)
         ax.set_xlabel("n (input alphabet size)")
         ax.set_ylabel("Time (s)")
         ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$")

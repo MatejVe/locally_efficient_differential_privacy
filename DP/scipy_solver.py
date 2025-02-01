@@ -3,10 +3,10 @@ import numpy as np
 
 from DP.utils import (
     fisher_information_privatized,
-    is_epsilon_private,
     print_matrix,
     reduce_optimal_matrix,
 )
+
 
 class ScipySolver:
     name = "scipy_solver"
@@ -14,12 +14,8 @@ class ScipySolver:
     def __init__(self, verbose=False):
         self.verbose = verbose
 
-    def __call__(
-        self, p_theta, p_theta_dot, epsilon, k
-    ):
-        Q_init = np.ones((k, k)) / (
-            k
-        ) + np.random.normal(size=(k, k), scale=0.1)
+    def __call__(self, p_theta, p_theta_dot, epsilon, k):
+        Q_init = np.ones((k, k)) / (k) + np.random.normal(size=(k, k), scale=0.1)
 
         def objective(Q):
             return -fisher_information_privatized(Q.reshape(k, k), p_theta, p_theta_dot)
@@ -70,7 +66,7 @@ class ScipySolver:
                 constraints=constraints,
                 bounds=bounds,
                 callback=callback,
-                method="SLSQP"
+                method="SLSQP",
             )
         else:
             result = minimize(
@@ -78,7 +74,7 @@ class ScipySolver:
                 Q_init.flatten(),
                 constraints=constraints,
                 bounds=bounds,
-                method="SLSQP"
+                method="SLSQP",
             )
 
         Q_optimal = result.x.reshape(k, k)
@@ -90,18 +86,16 @@ class ScipySolver:
             status = "Did not converge"
 
         return {"Q_matrix": Q_optimal, "status": status, "history": None}
-    
 
-class ScipySolverRestarts():
+
+class ScipySolverRestarts:
     name = "scipy_solver_restarts"
 
     def __init__(self, n_restarts: int = 10, verbose=False):
         self.n_restarts = n_restarts
         self.verbose = verbose
 
-    def __call__(
-        self, p_theta, p_theta_dot, epsilon, k
-    ):
+    def __call__(self, p_theta, p_theta_dot, epsilon, k):
         best_fish = -np.inf
         best_q = None
         stat = None

@@ -5,8 +5,6 @@ import numpy as np
 from scipy.stats import binom
 
 from DP.utils import (
-    binom_derivative,
-    fisher_gradient,
     fisher_information_privatized,
     is_epsilon_private,
 )
@@ -51,7 +49,7 @@ def fisher_information_privatized_modified(Q, p_theta, p_theta_dot, eps):
                     boundary_terms += (
                         (y / x - np.exp(-eps)) * (y / x - 1) * (y / x - np.exp(eps))
                     )
-    return np.sum(numerator / denominator) - 0.001**len(p_theta) * boundary_terms
+    return np.sum(numerator / denominator) - 0.001 ** len(p_theta) * boundary_terms
 
 
 def initialize_projection_solver(
@@ -118,9 +116,7 @@ class PGAModifiedEdgeTraversal:
 
     name = "PGAMET"
 
-    def __call__(
-        self, p_theta, p_theta_dot, epsilon, k, tol=1e-6, max_iter=2000
-    ):
+    def __call__(self, p_theta, p_theta_dot, epsilon, k, tol=1e-6, max_iter=2000):
         """
         Execute the PGA algorithm to optimize Q matrix.
 
@@ -153,16 +149,12 @@ class PGAModifiedEdgeTraversal:
         """
 
         # Initialize Q with random perturbation around a uniform matrix.
-        Q_init = np.ones((k, k)) / (
-            k
-        ) + np.random.normal(size=(k, k), scale=0.1)
+        Q_init = np.ones((k, k)) / (k) + np.random.normal(size=(k, k), scale=0.1)
 
         # If needed, you can project initial Q onto the feasible set.
         # Q_init = project_onto_feasible_set(Q_init, epsilon)
 
-        projection_problem, Q_var, Q_param = initialize_projection_solver(
-            k, epsilon
-        )
+        projection_problem, Q_var, Q_param = initialize_projection_solver(k, epsilon)
 
         Q_param.value = Q_init
         Q_var.value = Q_init
@@ -244,3 +236,40 @@ class PGAModifiedEdgeTraversal:
             status = "Max iterations reached without convergence"
 
         return {"Q_matrix": q, "status": status, "history": history}
+
+
+class PGAMETMultipleRestarts:
+    name = "PGAETMultipleRestarts"
+
+    def __init__(self, n_restarts: int = 10):
+        self.n_restarts = n_restarts
+
+    def __call__(
+        self,
+        p_theta,
+        p_theta_dot,
+        epsilon,
+        k,
+        tol=1e-5,
+        max_iter=300,
+    ):
+        best_fish = -np.inf
+        best_q = None
+        stat = None
+        history = None
+
+        for _ in range(self.n_restarts):
+            pga = PGAModifiedEdgeTraversal()
+            results = pga(p_theta, p_theta_dot, epsilon, k, tol, max_iter)
+            q = results["Q_matrix"]
+            status = results["status"]
+            hist = results["history"]
+            fish_value = fisher_information_privatized(q, p_theta, p_theta_dot)
+
+            if fish_value > best_fish:
+                best_fish = fish_value
+                best_q = q
+                stat = status
+                history = hist
+
+        return {"Q_matrix": best_q, "status": stat, "history": history}

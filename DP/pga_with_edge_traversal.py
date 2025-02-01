@@ -42,7 +42,12 @@ def initialize_projection_solver(
     return prob, Q_var, Q_param
 
 
-def project_onto_feasible_set(prob: cp.Problem, Q_var: cp.Variable, Q_param: cp.Parameter, q_to_project: np.ndarray):
+def project_onto_feasible_set(
+    prob: cp.Problem,
+    Q_var: cp.Variable,
+    Q_param: cp.Parameter,
+    q_to_project: np.ndarray,
+):
     Q_var.value = q_to_project
     Q_param.value = q_to_project
     prob.solve(solver=cp.SCS)
@@ -93,12 +98,16 @@ def linesearch(
     for alpha in alphas:
         # Compute candidate Q matrix
         q_candidate = q_initial + alpha * direction
-        q_candidate = np.vstack([q_candidate[:-1,:], 1 - np.sum(q_candidate[:-1,:], axis=0)])
+        q_candidate = np.vstack(
+            [q_candidate[:-1, :], 1 - np.sum(q_candidate[:-1, :], axis=0)]
+        )
 
         # Check feasibility
         if is_epsilon_private(q_candidate, epsilon, tol=1e-3):
             # Compute Fisher information
-            fish_value = fisher_information_privatized(q_candidate, p_theta, p_theta_dot)
+            fish_value = fisher_information_privatized(
+                q_candidate, p_theta, p_theta_dot
+            )
 
             # Update best solution if the Fisher information is higher
             if fish_value > best_fish:
@@ -107,11 +116,11 @@ def linesearch(
 
     # Return the best feasible Q matrix found
     if best_q is None:
-        #print(q_initial)
-        #print(direction)
-        #print(epsilon)
-        #raise ValueError("No feasible solution found during line search.")
-        #print("No feasible solution found during line search, returning the original value.")
+        # print(q_initial)
+        # print(direction)
+        # print(epsilon)
+        # raise ValueError("No feasible solution found during line search.")
+        # print("No feasible solution found during line search, returning the original value.")
         return q_initial
 
     return best_q
@@ -166,13 +175,9 @@ class PGAWithEdgeTraversal:
         """
 
         # Initialize Q with random perturbation around a uniform matrix.
-        Q_init = np.ones((k, k)) / (
-            k
-        ) + np.random.normal(size=(k, k), scale=0.5)
+        Q_init = np.ones((k, k)) / (k) + np.random.normal(size=(k, k), scale=0.5)
 
-        projection_problem, Q_var, Q_param = initialize_projection_solver(
-            k, epsilon
-        )
+        projection_problem, Q_var, Q_param = initialize_projection_solver(k, epsilon)
         # inital projection
         Q_init = project_onto_feasible_set(projection_problem, Q_var, Q_param, Q_init)
 
@@ -186,7 +191,7 @@ class PGAWithEdgeTraversal:
 
         for i in range(max_iter):
             q_linesearch = None
-            
+
             if first_projection is not None and second_projection is not None:
                 # If we have two projections, use them to perform a line search step
                 diff = second_projection - first_projection
@@ -210,14 +215,16 @@ class PGAWithEdgeTraversal:
                 grad_I[-1, :] = 0
 
                 # Perform the gradient ascent step
-                q_next = q + grad_I #/ np.sqrt(20 * (i + 1))
+                q_next = q + grad_I  # / np.sqrt(20 * (i + 1))
                 # fix the last row (column stochasticity)
-                q_next = np.vstack([q_next[:-1,:], 1 - np.sum(q_next[:-1,:], axis=0)])
+                q_next = np.vstack([q_next[:-1, :], 1 - np.sum(q_next[:-1, :], axis=0)])
 
                 # Check feasibility; if not private, project onto feasible region
                 if not is_epsilon_private(q_next, epsilon, tol=1e-10):
                     history.append(q_next.copy())
-                    q_projected = project_onto_feasible_set(projection_problem, Q_var, Q_param, q_next)
+                    q_projected = project_onto_feasible_set(
+                        projection_problem, Q_var, Q_param, q_next
+                    )
 
                     history.append(q_projected.copy())
                     if first_projection is not None:
@@ -251,3 +258,40 @@ class PGAWithEdgeTraversal:
             status = "Max iterations reached without convergence"
 
         return {"Q_matrix": q, "status": status, "history": history}
+
+
+class PGAETMultipleRestarts:
+    name = "PGAETMultipleRestarts"
+
+    def __init__(self, n_restarts: int = 10):
+        self.n_restarts = n_restarts
+
+    def __call__(
+        self,
+        p_theta,
+        p_theta_dot,
+        epsilon,
+        k,
+        tol=1e-3,
+        max_iter=300,
+    ):
+        best_fish = -np.inf
+        best_q = None
+        stat = None
+        history = None
+
+        for _ in range(self.n_restarts):
+            pga = PGAWithEdgeTraversal()
+            results = pga(p_theta, p_theta_dot, epsilon, k, tol, max_iter)
+            q = results["Q_matrix"]
+            status = results["status"]
+            hist = results["history"]
+            fish_value = fisher_information_privatized(q, p_theta, p_theta_dot)
+
+            if fish_value > best_fish:
+                best_fish = fish_value
+                best_q = q
+                stat = status
+                history = hist
+
+        return {"Q_matrix": best_q, "status": stat, "history": history}
