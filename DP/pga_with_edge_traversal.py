@@ -61,8 +61,8 @@ def linesearch(
     p_theta_dot,
     epsilon: float,
     alpha_min=1.0,
-    alpha_max=5.0,
-    num_steps=10,
+    alpha_max=100.0,
+    num_steps=100,
 ):
     """
     Perform a constrained line search to find the optimal alpha that maximizes
