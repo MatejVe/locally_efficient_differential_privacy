@@ -10,7 +10,6 @@ from tqdm import tqdm
 from DP.utils import (
     binom_optimal_privacy,
     fisher_information_binom,
-    fisher_information_privatized,
 )
 from DP.linear_solver import LinearSolver
 
@@ -192,14 +191,16 @@ class DP_tester:
     def compare_runtimes(solvers, ns, theta, epsilon, log=False, n_restarts: int = 10):
         """ns is a list of max values of n to test for"""
 
-        avg_times = list()
-        stds = list()
+        median_times = list()
+        upper_quantile_90 = list()
+        lower_quantile_10 = list()
 
         for i in range(len(solvers)):
             solver = solvers[i]
             print(f"Calculating for {solver.name}")
-            solver_times = list()
-            solver_stds = list()
+            solver_medians = list()
+            solver_uppers = list()
+            solver_downers = list()
             n_max = ns[i]
             for n in range(1, n_max + 1):
                 print(f"Calculating for n={n}")
@@ -212,13 +213,16 @@ class DP_tester:
                     time_taken = t_end - t_start
 
                     times_for_n.append(time_taken)
-                avg_time = np.mean(times_for_n)
-                std_time = np.std(times_for_n)
-                solver_times.append(avg_time)
-                solver_stds.append(std_time)
+                median_time = np.median(times_for_n)
+                q_90 = np.quantile(times_for_n, 0.9)
+                q_10 = np.quantile(times_for_n, 0.1)
+                solver_medians.append(median_time)
+                solver_uppers.append(q_90)
+                solver_downers.append(q_10)
 
-            avg_times.append(solver_times)
-            stds.append(solver_stds)
+            median_times.append(solver_medians)
+            upper_quantile_90.append(solver_uppers)
+            lower_quantile_10.append(solver_downers)
 
         fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -226,9 +230,9 @@ class DP_tester:
         for i in range(len(solvers)):
             ns_to_plot = np.arange(1, ns[i] + 1)
             ax.errorbar(
-                ns_to_plot,
-                avg_times[i],
-                yerr=stds[i],
+                ns_to_plot + i * 0.1,
+                median_times[i],
+                yerr=[lower_quantile_10[i], upper_quantile_90[i]],
                 label=solvers[i].name,
                 fmt=formats[i],
             )
@@ -236,7 +240,7 @@ class DP_tester:
             # ax.fill_between(ns_to_plot, np.array(avg_times[i]) - np.array(stds[i]), np.array(avg_times[i]) + np.array(stds[i]), alpha=0.3)
         ax.set_xlabel("n (input alphabet size)")
         ax.set_ylabel("Time (s)")
-        ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$")
+        ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$" + "\n median, 10th and 90th percentiles")
         if log:
             ax.set_yscale("log")
         plt.legend()
