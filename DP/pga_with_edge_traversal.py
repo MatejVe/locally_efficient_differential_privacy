@@ -3,7 +3,7 @@ from typing import Tuple
 import cvxpy as cp
 import numpy as np
 
-from DP.utils import fisher_gradient, fisher_information_privatized, is_epsilon_private
+from DP.utils import fisher_gradient, fisher_information_privatized, is_epsilon_private, epsilon_privacy_violation
 
 
 def initialize_projection_solver(
@@ -62,7 +62,7 @@ def linesearch(
     epsilon: float,
     alpha_min=1.0,
     alpha_max=100.0,
-    num_steps=100,
+    num_steps=200,
 ):
     """
     Perform a constrained line search to find the optimal alpha that maximizes
@@ -141,7 +141,7 @@ class PGAWithEdgeTraversal:
         epsilon,
         k,
         tol=1e-5,
-        max_iter=300,
+        max_iter=1000,
     ):
         """
         Execute the PGA algorithm to optimize Q matrix.
@@ -211,13 +211,13 @@ class PGAWithEdgeTraversal:
                 # Optional: gradient clipping or scaling if needed
                 # For example:
                 # grad_I = np.clip(grad_I, -1e5, 1e5)
-                grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 0.1])
+                #grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 0.1])
                 grad_I[-1, :] = 0
 
                 # Perform the gradient ascent step
-                q_next = q + grad_I  # / np.sqrt(20 * (i + 1))
+                q_next = q + grad_I / np.sqrt(i + 1)
                 # fix the last row (column stochasticity)
-                q_next = np.vstack([q_next[:-1, :], 1 - np.sum(q_next[:-1, :], axis=0)])
+                #q_next = np.vstack([q_next[:-1, :], 1 - np.sum(q_next[:-1, :], axis=0)])
 
                 # Check feasibility; if not private, project onto feasible region
                 if not is_epsilon_private(q_next, epsilon, tol=1e-10):
@@ -272,8 +272,8 @@ class PGAETMultipleRestarts:
         p_theta_dot,
         epsilon,
         k,
-        tol=1e-3,
-        max_iter=300,
+        tol=1e-5,
+        max_iter=500,
     ):
         best_fish = -np.inf
         best_q = None
@@ -293,5 +293,4 @@ class PGAETMultipleRestarts:
                 best_q = q
                 stat = status
                 history = hist
-
         return {"Q_matrix": best_q, "status": stat, "history": history}

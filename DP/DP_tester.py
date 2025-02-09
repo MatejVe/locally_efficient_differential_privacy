@@ -25,7 +25,7 @@ class DP_tester:
         thetas = np.linspace(1e-1, 1 - 1e-1, n_thetas)
 
         fig, axes = plt.subplots(
-            ncols=ncols, nrows=nrows, figsize=(8, 3 * nrows), sharey=True, sharex=True
+            ncols=ncols, nrows=nrows, figsize=(10, 3 * nrows), sharey=True, sharex=True
         )
         axes = axes.flatten()
 
@@ -36,11 +36,23 @@ class DP_tester:
                 q, _, _, best_fisher = binom_optimal_privacy(solver, n, epsilon, theta)
                 privatized_fisher_infs.append(best_fisher)
             if include_original:
-                axes[i].plot(thetas, orig_fisher_infs, label="Unsanitized data")
-            axes[i].plot(thetas, privatized_fisher_infs, label="Optimal Private Q")
-            axes[i].set_xlabel(r"$\theta$ (success probability parameter)")
-            axes[i].set_ylabel(r"$I(\theta, Q)$")
+                axes[i].plot(
+                    thetas,
+                    orig_fisher_infs,
+                    label="Unsanitized data Fisher information",
+                    linewidth=1,
+                )
+            axes[i].plot(
+                thetas,
+                privatized_fisher_infs,
+                label="Sanitized data Fisher information",
+                linewidth=1,
+            )
             axes[i].set_title(f"$n={n}$")
+        axes[-1].set_xlabel(r"$\theta$ (success probability parameter)")
+        axes[-2].set_xlabel(r"$\theta$ (success probability parameter)")
+        axes[0].set_ylabel(r"$I(\theta, Q)$")
+        axes[0 + ncols].set_ylabel(r"$I(\theta, Q)$")
         axes[0].legend()
         plt.suptitle(
             rf"Binomial model Fisher information, solver {solver.name}, $\epsilon = {epsilon}$"
@@ -240,7 +252,10 @@ class DP_tester:
             # ax.fill_between(ns_to_plot, np.array(avg_times[i]) - np.array(stds[i]), np.array(avg_times[i]) + np.array(stds[i]), alpha=0.3)
         ax.set_xlabel("n (input alphabet size)")
         ax.set_ylabel("Time (s)")
-        ax.set_title(rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$" + "\n median, 10th and 90th percentiles")
+        ax.set_title(
+            rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$"
+            + "\n median, 10th and 90th percentiles"
+        )
         if log:
             ax.set_yscale("log")
         plt.legend()
