@@ -141,6 +141,42 @@ def is_epsilon_private(Q: np.ndarray, epsilon: float, tol=1e-6) -> bool:
     return True
 
 
+def epsilon_privacy_violation(Q: np.ndarray, epsilon: float) -> float:
+    """
+    Measures how far away the matrix Q is from being epsilon private.
+
+    Parameters
+    ----------
+    Q : np.ndarray
+        privacy matrix
+    epsilon : float
+        privacy parameter
+
+    Returns
+    -------
+    float
+        A non-negative value indicating the worst-case violation. 
+        A value of 0 means Q is epsilon-private.
+    """
+    if np.any(Q < -1e-4):
+        return float('inf')  # Negative probabilities are invalid
+    
+    max_violation = 0.0
+    n_rows, n_cols = Q.shape
+
+    for i in range(n_rows):
+        row = Q[i]
+
+        for j in range(n_cols):
+            for j_prime in range(n_cols):
+                if j != j_prime:
+                    v1 = max(0, np.exp(-epsilon) * row[j_prime] - row[j])
+                    v2 = max(0, row[j] - np.exp(epsilon) * row[j_prime])
+                    max_violation = max(max_violation, v1, v2)
+    
+    return max_violation
+
+
 def is_column_stochastic(Q: np.ndarray) -> bool:
     ncols = Q.shape[1]
     for i in range(ncols):
@@ -174,7 +210,7 @@ def fisher_information_privatized(
     numerator = np.power(Q @ p_theta_dot, 2)
     denominator = Q @ p_theta
     # safeguard against very small denominators
-    denominator[denominator < 1e-12] = 1e-12
+    denominator[np.abs(denominator) < 1e-12] = 1e-12
     return np.sum(numerator / denominator)
 
 
