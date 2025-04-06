@@ -4,10 +4,7 @@ import cvxpy as cp
 import numpy as np
 from scipy.stats import binom
 
-from DP.utils import (
-    binom_derivative,
-    is_epsilon_private,
-)
+from DP.utils import binom_derivative, is_epsilon_private
 
 
 def fisher_gradient_modified(p_theta, p_theta_dot, q_mat, epsilon):

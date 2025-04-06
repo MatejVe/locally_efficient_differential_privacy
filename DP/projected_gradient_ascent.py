@@ -4,11 +4,8 @@ import cvxpy as cp
 import numpy as np
 from scipy.stats import binom
 
-from DP.utils import (
-    fisher_gradient,
-    fisher_information_privatized,
-    is_epsilon_private,
-)
+from DP.utils import (fisher_gradient, fisher_information_privatized,
+                      is_epsilon_private)
 
 
 def initialize_projection_solver(
@@ -70,7 +67,6 @@ class PGA:
             grad_I[-1, :] = 0
 
             q_next = q + 0.001 * grad_I  # / np.sqrt(200 * (i + 1))
-            q_next = np.vstack([q_next[:-1, :], 1 - np.sum(q_next[:-1, :], axis=0)])
 
             if not is_epsilon_private(q_next, epsilon):
                 Q_param.value = q_next

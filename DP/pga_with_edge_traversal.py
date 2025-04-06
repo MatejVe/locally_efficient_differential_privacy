@@ -3,7 +3,8 @@ from typing import Tuple
 import cvxpy as cp
 import numpy as np
 
-from DP.utils import fisher_gradient, fisher_information_privatized, is_epsilon_private, epsilon_privacy_violation
+from DP.utils import (epsilon_privacy_violation, fisher_gradient,
+                      fisher_information_privatized, is_epsilon_private)
 
 
 def initialize_projection_solver(
@@ -98,9 +99,6 @@ def linesearch(
     for alpha in alphas:
         # Compute candidate Q matrix
         q_candidate = q_initial + alpha * direction
-        q_candidate = np.vstack(
-            [q_candidate[:-1, :], 1 - np.sum(q_candidate[:-1, :], axis=0)]
-        )
 
         # Check feasibility
         if is_epsilon_private(q_candidate, epsilon, tol=1e-3):
@@ -195,7 +193,7 @@ class PGAWithEdgeTraversal:
             if first_projection is not None and second_projection is not None:
                 # If we have two projections, use them to perform a line search step
                 diff = second_projection - first_projection
-                diff[-1, :] = 0
+                # diff[-1, :] = 0
                 q_linesearch = linesearch(q, diff, p_theta, p_theta_dot, epsilon)
                 # Reset projections after line search
                 first_projection = None
@@ -211,13 +209,13 @@ class PGAWithEdgeTraversal:
                 # Optional: gradient clipping or scaling if needed
                 # For example:
                 # grad_I = np.clip(grad_I, -1e5, 1e5)
-                #grad_I = grad_I / np.max([1, np.linalg.norm(grad_I, ord="fro") / 0.1])
-                grad_I[-1, :] = 0
+                grad_I = grad_I / np.max(
+                    [1, np.linalg.norm(grad_I, ord="fro") / (k**2)]
+                )
+                # grad_I[-1, :] = 0
 
                 # Perform the gradient ascent step
                 q_next = q + grad_I / np.sqrt(i + 1)
-                # fix the last row (column stochasticity)
-                #q_next = np.vstack([q_next[:-1, :], 1 - np.sum(q_next[:-1, :], axis=0)])
 
                 # Check feasibility; if not private, project onto feasible region
                 if not is_epsilon_private(q_next, epsilon, tol=1e-10):

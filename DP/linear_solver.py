@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 from scipy.optimize import linprog
+
 from DP.utils import reduce_optimal_matrix
 
 

@@ -1,17 +1,14 @@
 import matplotlib
 import matplotlib.pyplot as plt
 
-matplotlib.style.use("ggplot")
+matplotlib.style.use("bmh")
 from time import time
 
 import numpy as np
 from tqdm import tqdm
 
-from DP.utils import (
-    binom_optimal_privacy,
-    fisher_information_binom,
-)
 from DP.linear_solver import LinearSolver
+from DP.utils import binom_optimal_privacy, fisher_information_binom
 
 
 class DP_tester:
@@ -20,7 +17,7 @@ class DP_tester:
         solver, ns: list, epsilon: float, n_thetas: int = 50, include_original=True
     ):
         ncols = 2
-        nrows = len(ns) // 2
+        nrows = int(np.ceil(len(ns) // 2))
 
         thetas = np.linspace(1e-1, 1 - 1e-1, n_thetas)
 
@@ -48,7 +45,7 @@ class DP_tester:
                 label="Sanitized data Fisher information",
                 linewidth=1,
             )
-            axes[i].set_title(f"$n={n}$")
+            axes[i].set_title(f"$m={n}$")
         axes[-1].set_xlabel(r"$\theta$ (success probability parameter)")
         axes[-2].set_xlabel(r"$\theta$ (success probability parameter)")
         axes[0].set_ylabel(r"$I(\theta, Q)$")
@@ -58,6 +55,7 @@ class DP_tester:
             rf"Binomial model Fisher information, solver {solver.name}, $\epsilon = {epsilon}$"
         )
         plt.tight_layout()
+        plt.savefig("fisher_infos")
         plt.show()
 
     @staticmethod
@@ -126,7 +124,7 @@ class DP_tester:
                 converged_solver2.append(False)
             solver2_fisher_infs.append(best_fisher)
 
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         ax.plot(thetas, orig_fisher_infs, label="Unsanitized data")
         ax.plot(thetas, solver1_fisher_infs, label=f"Optimal Q {solver1.name}")
@@ -154,7 +152,7 @@ class DP_tester:
         plt.show()
 
     @staticmethod
-    def compare_fisher_multiple_solvers(solvers, n, epsilon, n_thetas=50):
+    def compare_fisher_multiple_solvers(solvers, n, epsilon, n_thetas=50, save_path=None):
         thetas = np.linspace(1e-1, 1 - 1e-1, n_thetas)
 
         orig_fisher_infs = fisher_information_binom(n, thetas)
@@ -193,10 +191,14 @@ class DP_tester:
         ax[1].set_xlabel(r"$\theta$ (success probability parameter)")
         ax[0].set_ylabel(r"$I(\theta, Q)$")
         ax[1].set_ylabel(r"$I(\theta, Q_{opt}) - I(\theta, Q)$")
-        fig.suptitle(rf"$n={n}, \epsilon={epsilon}$")
+        fig.suptitle(rf"$m={n}, \epsilon={epsilon}$")
         ax[0].legend()
 
         plt.tight_layout()
+
+        if save_path is not None:
+            plt.savefig(save_path)
+
         plt.show()
 
     @staticmethod
@@ -250,7 +252,7 @@ class DP_tester:
             )
             # ax.plot(ns_to_plot, avg_times[i], label=solvers[i].name)
             # ax.fill_between(ns_to_plot, np.array(avg_times[i]) - np.array(stds[i]), np.array(avg_times[i]) + np.array(stds[i]), alpha=0.3)
-        ax.set_xlabel("n (input alphabet size)")
+        ax.set_xlabel("k (input alphabet size)")
         ax.set_ylabel("Time (s)")
         ax.set_title(
             rf"Runtime comparisons, $\theta={theta}, \epsilon={epsilon}$"

@@ -1,11 +1,12 @@
-from scipy.optimize import minimize
-import numpy as np
+"""
 
-from DP.utils import (
-    fisher_information_privatized,
-    print_matrix,
-    reduce_optimal_matrix,
-)
+"""
+
+import numpy as np
+from scipy.optimize import minimize
+
+from DP.utils import (fisher_information_privatized, print_matrix,
+                      reduce_optimal_matrix)
 
 
 class ScipySolver:

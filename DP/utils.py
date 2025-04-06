@@ -1,3 +1,7 @@
+"""
+A collection of useful functions for differential privacy.
+"""
+
 from typing import Callable, List, Tuple
 
 import numpy as np
@@ -155,12 +159,12 @@ def epsilon_privacy_violation(Q: np.ndarray, epsilon: float) -> float:
     Returns
     -------
     float
-        A non-negative value indicating the worst-case violation. 
+        A non-negative value indicating the worst-case violation.
         A value of 0 means Q is epsilon-private.
     """
     if np.any(Q < -1e-4):
-        return float('inf')  # Negative probabilities are invalid
-    
+        return float("inf")  # Negative probabilities are invalid
+
     max_violation = 0.0
     n_rows, n_cols = Q.shape
 
@@ -173,7 +177,7 @@ def epsilon_privacy_violation(Q: np.ndarray, epsilon: float) -> float:
                     v1 = max(0, np.exp(-epsilon) * row[j_prime] - row[j])
                     v2 = max(0, row[j] - np.exp(epsilon) * row[j_prime])
                     max_violation = max(max_violation, v1, v2)
-    
+
     return max_violation
 
 
