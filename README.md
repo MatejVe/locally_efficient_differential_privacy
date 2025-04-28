@@ -83,7 +83,10 @@ $$
 The optimization problem becomes 
 
 $$
-\max_{Q \in D_{\epsilon, k}} I_\theta(Q) = \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) \text{p prime}_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)} = \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot \text{p prime}_\theta)^2}{Q_z \cdot p_\theta}.
+\begin{align*}
+\max_{Q \in D_{\epsilon, k}} I_\theta(Q) &= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)} \\
+&= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta}.
+\end{align*}
 $$
 
 ### Useful properties of the maximization problem
