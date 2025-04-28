@@ -48,7 +48,9 @@ Formally, differential privacy (DP) is a Markov kernel $Q$ that maps $(X, A)$ me
 2. For every $x_0 \in X$, the map $B \mapsto Q(B, x_0)$ is a probability measure on $(Y, B).
 
 Given a parameterized private data distribution $X = (X_1, ..., X_n)$ DP generates sanitized (protected) data $Z$ with conditional distribution
+
 $$ Q(A|x) = P(Z \in A| X= x), $$
+
 and the distribution of the sanitized data $Z$ is
 $$ \[QP_\theta\](A) := \int_{X} Q(A|x)P_\theta (dx). $$
 
