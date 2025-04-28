@@ -50,7 +50,7 @@ Formally, differential privacy (DP) is a Markov kernel $Q$ that maps $(X, A)$ me
 Given a parameterized private data distribution $X = (X_1, ..., X_n)$ DP generates sanitized (protected) data $Z$ with conditional distribution
 $$ Q(A|x) = P(Z \in A| X= x), $$
 and the distribution of the sanitized data $Z$ is
-$$ [QP_\theta](A) := \int_{X} Q(A|x)P_\theta (dx). $$
+$$ \[QP_\theta\](A) := \int_{X} Q(A|x)P_\theta (dx). $$
 
 Given a value of $\epsilon \in [0, \infty)$ a differential privacy mechanism is said to be $\epsilon$-Locally Differentially Private if
 $$ Q(z|x) \leq e^\epsilon \cdot Q(z|x'), \quad \forall z \in Z, x, x' \in X, $$
@@ -59,7 +59,7 @@ where $Q(z|x) = P(Z_i = z| X_i = x)$.
 In this thesis we focused on the problem of maximizing some utility function of the sanitized (protected) probability distribution. Specifically, we focused on maximizing the Fisher information. If we define
 $$ D_\epsilon(X) = \bigcup_{Z, B} \{Q \in M(X \to Z) | Q(A|x) \leq e^\epsilon Q(A|x'), \quad \forall A, x, x' \} $$
 to be the set of all $\epsilon$-differentially private mechanisms, we want to find
-$$ \sup_{Q \in D_\epsilon (X)} I_\theta(Q) = \sup_{Q \in D_\epsilon (X)} E_\theta \left[ \left( \frac{\partial}{\partial \theta} \log[QP_\theta](Z) \right)^2 \right]. $$
+$$ \sup_{Q \in D_\epsilon (X)} I_\theta(Q) = \sup_{Q \in D_\epsilon (X)} E_\theta \left[ \left( \frac{\partial}{\partial \theta} \log\[QP_\theta\](Z) \right)^2 \right]. $$
 Here $I_\theta(Q)$ is the resulting Fisher information of $\theta$ as a function of the differential privacy mechanism $Q$. $P_\theta$ is a parameterized prior probability distribution, for example Gaussian with $\theta$ being the location (mean $\mu$) parameter.
 
 In general, this is an intractable problem: the optimization domain is infinite-dimensional, and only a few special cases are known to be exactly solvable. We can vastly simplify the problem if we limit the prior distributions to discrete distributions with finite support, i.e. $|X| = k \in \mathbb{N}$. Following Kairouz et al. (2016), it can be shown that, for discrete priors with $|X| = k$, it suffices to restrict the optimization domain to stochastic matrices of size $k \times k$. The sanitized distribution is also discrete, with the support of size at most $k$.
@@ -75,18 +75,27 @@ $$ \max_{Q \in D_{\epsilon, k}} I_\theta(Q) = \max_{Q\in D_{\epsilon, k}} \sum_{
 
 ### Useful properties of the maximization problem
 
-1. The objective function, $I_\theta(Q)$ is a convex function in $Q$ (Steinberger (2024), Lemma 4.5).
+1. The objective function $I_\theta(Q)$ is convex in $Q$ (Steinberger (2024), Lemma 4.5).
 
 *Proof*
 
-Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot \dot{p}_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta$ is a positive quantity (both $Q_z$ and $p_\theta$ are probability distributions) we consider
+Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot \dot{p}_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
 $$
 g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot \dot{p}_\theta + (1-\lambda) Q_2 \cdot \dot{p}_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
 $$
 
-Label $a = Q_1 \cdot \dot{p}_\theta$, $b = Q_2 \cdot \dot{p}_\theta$, $x = Q_1 \cdot \dot{p}_\theta$, $y = Q_2 \cdot \dot{p}_\theta$ (note that $x, y \geq 0$) to get
+Let's define: 
+$$ a = Q_1 \cdot \dot{p}_\theta, \quad b = Q_2 \cdot \dot{p}_\theta, \quad x = Q_1 \cdot \dot{p}_\theta, \quad y = Q_2 \cdot \dot{p}_\theta, $$
+where $x, y > 0$. We then want to show:
 $$ \frac{(\lambda a + (1-\lambda)b)^2}{\lambda x + (1 - \lambda) y} \leq \lambda \frac{a^2}{x} + (1-\lambda) \frac{b^2}{y}. $$
-Expand the square and multiply both sides by $\lambda x + (1 - \lambda)y$ to obtain $2ab \leq a^2 \frac{y}{x} + b^2 \frac{x}{y}$. Define $h(a) := a^2 \frac{y}{x} + b^2 {x}{y} - 2ab$ - we want to show that $h(a) \geq 0$ for all $a \in \mathbb{R}$. We have $h'(a) = 2a\frac{y}{x} - 2b$ and $h''(a) = 2 \frac{y}{x} > 0$ so $h$ is strictly convex and therefore $g_\theta(Q_z)$ is convex.
+
+Expand the square and multiply both sides by $\lambda x + (1 - \lambda)y$ to obtain 
+$$ 2ab \leq a^2 \frac{y}{x} + b^2 \frac{x}{y} $$. 
+Define 
+$$ h(a) := a^2 \frac{y}{x} + b^2 {x}{y} - 2ab $$
+and observe:
+$$ h'(a) = 2a\frac{y}{x} - 2b, \quad h''(a) = 2 \frac{y}{x} > 0, $$
+meaning $h$ is strictly convex. Therefore, $h(a) \geq 0$ for all $a$, and $g_\theta(Q_z)$ is convex.
 
 2. The optimization domain, $D_{\epsilon, k}$ is convex.
 
@@ -94,7 +103,7 @@ Expand the square and multiply both sides by $\lambda x + (1 - \lambda)y$ to obt
 
 Consider two $\epsilon$-locally differentially private mechanisms $Q_1$ and $Q_2$, acting on an input alphabet of size $k$. Then they both have to satisfy $Q_1(z|x) \leq e^\epsilon Q_1(z|x')$ and $Q_2(z|x) \leq e^\epsilon Q_2(z|x')$. Their linear combination $\lambda Q_1 + (1 - \lambda) Q_2 = Q'$ is a matrix of the same size, and element wise we have
 $$ Q'(z|x) = \lambda Q_1(z|x) + (1 - \lambda) Q_2(z|x) \leq \lambda e^\epsilon Q_1(z|x') + (1 - \lambda) e^\epsilon Q_2(z|x') = e^\epsilon Q'(z|x'). $$
-In fact, the constraining set is a highdimensional polytope (which makes it obviously convex as well). 
+In fact, the constraining set is a high-dimensional polytope (which makes it obviously convex as well). 
 
 3. The output alphabet size is at most the input alphabet size, i.e. $|Z| \leq |X|$. For all $z\in Z$ and $x,x' \in X$ (Kairouz et al. (2016), Theorem 2).
 $$ |\ln \frac{Q*(z|x)}{Q*(y|x*)}| \in \{0,\epsilon\} $$
@@ -125,4 +134,3 @@ $$ \nabla I_\theta (Q) |_{(x,z)} = 2\dot{p}_\theta (x) \frac{Q_z \cdot \dot{p}_\
 Gradient ascent update rule is given by
 $$ Q_{t+1} = P(Q_t + \lambda_t \nabla I_\theta (Q_t)), $$
 where $P(Q) = \argmin \{||Q - W||_F : W \in D_\epsilon\}$ is the projection subroutine, $||.||_F$ is the Frobenius norm.
-
