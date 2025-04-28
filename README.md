@@ -84,8 +84,8 @@ The optimization problem becomes
 
 $$
 \max_{Q \in D_{\epsilon, k}} I_\theta(Q)
-= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) \dot{p}_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)}
-= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot \dot{p}_\theta)^2}{Q_z \cdot p_\theta}.
+= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)}
+= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta}.
 $$
 
 
@@ -95,15 +95,15 @@ $$
 
 *Proof*
 
-Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot \dot{p}_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
+Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
 
 $$
-g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot \dot{p}_\theta + (1-\lambda) Q_2 \cdot \dot{p}_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
+g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot p'_\theta + (1-\lambda) Q_2 \cdot p'_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
 $$
 
 Let's define: 
 
-$$ a = Q_1 \cdot \dot{p}_\theta, \quad b = Q_2 \cdot \dot{p}_\theta, \quad x = Q_1 \cdot \dot{p}_\theta, \quad y = Q_2 \cdot \dot{p}_\theta, $$
+$$ a = Q_1 \cdot p'_\theta, \quad b = Q_2 \cdot p'_\theta, \quad x = Q_1 \cdot p'_\theta, \quad y = Q_2 \cdot p'_\theta, $$
 
 where $x, y > 0$. We then want to show:
 
@@ -162,11 +162,11 @@ and the optimal privatization matrix is obtained as $Q^T = S^{(k)} \Theta$.
 
 The objective function depends on the mechanism $Q$ and is given by
 
-$$ I_\theta(Q) = \sum_{z\in Z} \frac{(Q_z \cdot \dot{p_\theta}(x))^2}{Q_z \cdot p_\theta}. $$
+$$ I_\theta(Q) = \sum_{z\in Z} \frac{(Q_z \cdot p'_\theta(x))^2}{Q_z \cdot p_\theta}. $$
 
 The gradient of the objective function is given by
 
-$$ \nabla I_\theta (Q) |_{(x,z)} = 2\dot{p}_\theta (x) \frac{Q_z \cdot \dot{p}_\theta}{Q_z \cdot p_\theta} - p_\theta(x) \frac{(Q_z \cdot \dot{p}_\theta)^2}{(Q_z \cdot p_\theta)^2}. $$
+$$ \nabla I_\theta (Q) |_{(x,z)} = 2p'_\theta (x) \frac{Q_z \cdot p'_\theta}{Q_z \cdot p_\theta} - p_\theta(x) \frac{(Q_z \cdot p'_\theta)^2}{(Q_z \cdot p_\theta)^2}. $$
 
 Gradient ascent update rule is given by
 
