@@ -85,7 +85,7 @@ The optimization problem becomes
 $$
 \begin{align*}
 \text{max}_{Q \in D_{\epsilon, k}} I_\theta(Q) &= \text{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)} \\
-&= \ext{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta}.
+&= \text{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta}.
 \end{align*}
 $$
 
