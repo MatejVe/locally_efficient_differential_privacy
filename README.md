@@ -95,7 +95,7 @@ The optimization problem becomes
 
 *Proof*
 
-Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot p' _\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
+Notice that $`I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)`$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
 
 ```math
 g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot p'_\theta + (1-\lambda) Q_2 \cdot p'_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
@@ -169,14 +169,22 @@ and the optimal privatization matrix is obtained as $Q^T = S^{(k)} \Theta$.
 
 The objective function depends on the mechanism $Q$ and is given by
 
-$$ I_\theta(Q) = \sum_{z\in Z} \frac{(Q_z \cdot p' _\theta(x))^2}{Q_z \cdot p_\theta}. $$
+```math
+I_\theta(Q) = \sum_{z\in Z} \frac{(Q_z \cdot p'_\theta(x))^2}{Q_z \cdot p_\theta}.
+```
 
 The gradient of the objective function is given by
 
-$$ \nabla I_\theta (Q) |_{(x,z)} = 2p' _\theta (x) \frac{Q_z \cdot p' _\theta}{Q_z \cdot p_\theta} - p_\theta(x) \frac{(Q_z \cdot p' _\theta)^2}{(Q_z \cdot p_\theta)^2}. $$
+```math
+\nabla I_\theta (Q) |_{(x,z)} = 2p'_\theta (x) \frac{Q_z \cdot p'_\theta}{Q_z \cdot p_\theta} - p_\theta(x) \frac{(Q_z \cdot p'_\theta)^2}{(Q_z \cdot p_\theta)^2}.
+```
 
 Gradient ascent update rule is given by
 
 $$ Q_{t+1} = P(Q_t + \lambda_t \nabla I_\theta (Q_t)), $$
 
-where $P(Q) = \arg \min \{||Q - W||_F : W \in D_\epsilon\}$ is the projection subroutine, $||.||_F$ is the Frobenius norm.
+where 
+```math
+P(Q) = \arg \min \{||Q - W||_F : W \in D_\epsilon\}
+```
+is the projection subroutine, $||.||_F$ is the Frobenius norm.
