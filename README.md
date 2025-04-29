@@ -137,11 +137,13 @@ $$ Q'(z|x) = \lambda Q_1(z|x) + (1 - \lambda) Q_2(z|x) \leq \lambda e^\epsilon Q
 
 In fact, the constraining set is a high-dimensional polytope (which makes it obviously convex as well). 
 
-3. The output alphabet size is at most the input alphabet size, i.e. $|Z| \leq |X|$. For all $z\in Z$ and $x,x' \in X$ (Kairouz et al. (2016), Theorem 2).
+3. The output alphabet size is at most the input alphabet size, i.e. $|Z| \leq |X|$. For all $z\in Z$ and $x,x' \in X$ (Kairouz et al. (2016), Theorem 2). Furthermore the optimal matrix $Q^*$ satisfies
 
-$$ |\ln \frac{Q*(z|x)}{Q*(y|x*)}| \in \{0,\epsilon\} $$
+```math
+|\ln \frac{Q^*(z|x)}{Q^*(z|x')}| \in \{0,\epsilon\}.
+```
 
-where $Q*$ denotes the solution to the maximization problem.
+This means that the optimal solution is at one of the vertices of the underlying polytope.
 
 ### Linear solver
 
