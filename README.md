@@ -82,7 +82,12 @@ $$
 
 The optimization problem becomes 
 
-$$ \max_{Q \in D_{\epsilon, k}} I_\theta(Q) = \max_{Q\in D_{\epsilon, k}} \sum_{z \in Z} \frac{(\sum_{x \in X} Q(z|x) \dot{p}_\theta(x))^2}{\sum_{x\in X} Q(z|x) p_\theta(x)} = \max_{Q\in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot \dot{p}_\theta)^2}{Q_z \cdot p_\theta}. $$ 
+```math
+\begin{align*}
+\max_{Q \in D_{\epsilon, k}} I_\theta(Q) &= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)} \\
+&= \text{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta}.
+\end{align*}
+```
 
 ### Useful properties of the maximization problem
 
@@ -90,23 +95,27 @@ $$ \max_{Q \in D_{\epsilon, k}} I_\theta(Q) = \max_{Q\in D_{\epsilon, k}} \sum_{
 
 *Proof*
 
-Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot \dot{p}_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
+Notice that $`I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)`$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
 
-$$
-g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot \dot{p}_\theta + (1-\lambda) Q_2 \cdot \dot{p}_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
-$$
+```math
+g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot p'_\theta + (1-\lambda) Q_2 \cdot p'_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
+```
 
 Let's define: 
 
-$$ a = Q_1 \cdot \dot{p}_\theta, \quad b = Q_2 \cdot \dot{p}_\theta, \quad x = Q_1 \cdot \dot{p}_\theta, \quad y = Q_2 \cdot \dot{p}_\theta, $$
+```math 
+a = Q_1 \cdot p'_\theta, \quad b = Q_2 \cdot p'_\theta, \quad x = Q_1 \cdot p'_\theta, \quad y = Q_2 \cdot p'_\theta,
+```
 
 where $x, y > 0$. We then want to show:
 
-$$ \frac{(\lambda a + (1-\lambda)b)^2}{\lambda x + (1 - \lambda) y} \leq \lambda \frac{a^2}{x} + (1-\lambda) \frac{b^2}{y}. $$
+```math
+\frac{(\lambda a + (1-\lambda)b)^2}{\lambda x + (1 - \lambda) y} \leq \lambda \frac{a^2}{x} + (1-\lambda) \frac{b^2}{y}.
+```
 
 Expand the square and multiply both sides by $\lambda x + (1 - \lambda)y$ to obtain 
 
-$$ 2ab \leq a^2 \frac{y}{x} + b^2 \frac{x}{y} $$. 
+$$ 2ab \leq a^2 \frac{y}{x} + b^2 \frac{x}{y}. $$ 
 
 Define 
 
@@ -128,16 +137,21 @@ $$ Q'(z|x) = \lambda Q_1(z|x) + (1 - \lambda) Q_2(z|x) \leq \lambda e^\epsilon Q
 
 In fact, the constraining set is a high-dimensional polytope (which makes it obviously convex as well). 
 
-3. The output alphabet size is at most the input alphabet size, i.e. $|Z| \leq |X|$. For all $z\in Z$ and $x,x' \in X$ (Kairouz et al. (2016), Theorem 2).
+3. The output alphabet size is at most the input alphabet size, i.e. $|Z| \leq |X|$. For all $z\in Z$ and $x,x' \in X$ (Kairouz et al. (2016), Theorem 2). Furthermore the optimal matrix $Q^*$ satisfies
 
-$$ |\ln \frac{Q*(z|x)}{Q*(y|x*)}| \in \{0,\epsilon\} $$
-where $Q*$ denotes the solution to the maximization problem.
+```math
+|\ln \frac{Q^*(z|x)}{Q^*(z|x')}| \in \{0,\epsilon\}.
+```
+
+This means that the optimal solution is at one of the vertices of the underlying polytope.
 
 ### Linear solver
 
 Kairouz et al. (2016) observed that the optimal $\epsilon$-differentially private mechanism will be a matrix satisfying the extremal structure of $ |\ln \frac{Q*(z|x)}{Q*(y|x*)}| \in \{0,\epsilon\} $. They construct a so called *Staircase Pattern Matrix* that contains all possible combinations of $1$ and $e^\epsilon$ values, e.g.
 
-$$ S^{(2)} = \begin{pmatrix} 1 & 1 & e^\epsilon & e^\epsilon \\ 1 & e^\epsilon & 1 & e^\epsilon \end{pmatrix}. $$
+```math
+S^{(2)} = \begin{pmatrix} 1 & 1 & e^\epsilon & e^\epsilon \\ 1 & e^\epsilon & 1 & e^\epsilon \end{pmatrix}.
+```
 
 Any optimal mechanism (also called staircase mechanism) can be represented through the pattern matrix as $Q^T = S^{(k)} \Theta$ where $\Theta = diag(\theta)$ is a $2^k \times 2^k$ diagonal matrix and $\theta$ is a $2^k$-dimensional vector representing the scaling of the columns of $S^{(k)}.
 
@@ -157,14 +171,22 @@ and the optimal privatization matrix is obtained as $Q^T = S^{(k)} \Theta$.
 
 The objective function depends on the mechanism $Q$ and is given by
 
-$$ I_\theta(Q) = \sum_{z\in Z} \frac{(Q_z \cdot \dot{p_\theta}(x))^2}{Q_z \cdot p_\theta}. $$
+```math
+I_\theta(Q) = \sum_{z\in Z} \frac{(Q_z \cdot p'_\theta(x))^2}{Q_z \cdot p_\theta}.
+```
 
 The gradient of the objective function is given by
 
-$$ \nabla I_\theta (Q) |_{(x,z)} = 2\dot{p}_\theta (x) \frac{Q_z \cdot \dot{p}_\theta}{Q_z \cdot p_\theta} - p_\theta(x) \frac{(Q_z \cdot \dot{p}_\theta)^2}{(Q_z \cdot p_\theta)^2}. $$
+```math
+\nabla I_\theta (Q) |_{(x,z)} = 2p'_\theta (x) \frac{Q_z \cdot p'_\theta}{Q_z \cdot p_\theta} - p_\theta(x) \frac{(Q_z \cdot p'_\theta)^2}{(Q_z \cdot p_\theta)^2}.
+```
 
 Gradient ascent update rule is given by
 
 $$ Q_{t+1} = P(Q_t + \lambda_t \nabla I_\theta (Q_t)), $$
 
-where $P(Q) = \argmin \{||Q - W||_F : W \in D_\epsilon\}$ is the projection subroutine, $||.||_F$ is the Frobenius norm.
+where 
+```math
+P(Q) = \arg \min \{||Q - W||_F : W \in D_\epsilon\}
+```
+is the projection subroutine, $||.||_F$ is the Frobenius norm.
