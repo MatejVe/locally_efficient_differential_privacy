@@ -82,14 +82,12 @@ $$
 
 The optimization problem becomes 
 
-$$ \text{max}_{Q \in D_{\epsilon, k}} I_\theta(Q) &= \text{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{1} $$
-
-$$
+```math
 \begin{align*}
-\text{max}_{Q \in D_{\epsilon, k}} I_\theta(Q) &= \text{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)} \\
+\max_{Q \in D_{\epsilon, k}} I_\theta(Q) &= \max_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{\left( \sum_{x \in X} Q(z|x) p'_\theta(x) \right)^2}{\sum_{x \in X} Q(z|x) p_\theta(x)} \\
 &= \text{max}_{Q \in D_{\epsilon, k}} \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta}.
 \end{align*}
-$$
+```
 
 ### Useful properties of the maximization problem
 
@@ -99,17 +97,21 @@ $$
 
 Notice that $I_\theta(Q) = \sum_{z \in Z} \frac{(Q_z \cdot p'_\theta)^2}{Q_z \cdot p_\theta} = \sum_{z\in Z} g_\theta(Q_z)$. This means we just need to show that $g_\theta(Q_z)$ is convex. If $Q_z$ is a null vector we have $g_\theta(\lambda Q_1 + (1-\lambda) Q_2) = \lambda g_\theta(Q_1) + (1-\lambda) g_\theta(Q_2)$. Otherwise, $Q_z \cdot p_\theta > 0$ (both $Q_z$ and $p_\theta$ are probability distributions), consider
 
-$$
+```math
 g_\theta(\lambda Q_1 + (1 - \lambda) Q_2) = \frac{(\lambda Q_1 \cdot p'_\theta + (1-\lambda) Q_2 \cdot p'_\theta)^2}{\lambda Q_1 \dot p_\theta + (1-\lambda) Q_2 \cdot p_\theta}.
-$$
+```
 
 Let's define: 
 
-$$ a = Q_1 \cdot p'_\theta, \quad b = Q_2 \cdot p'_\theta, \quad x = Q_1 \cdot p'_\theta, \quad y = Q_2 \cdot p'_\theta, $$
+```math 
+a = Q_1 \cdot p'_\theta, \quad b = Q_2 \cdot p'_\theta, \quad x = Q_1 \cdot p'_\theta, \quad y = Q_2 \cdot p'_\theta,
+```
 
 where $x, y > 0$. We then want to show:
 
-$$ \frac{(\lambda a + (1-\lambda)b)^2}{\lambda x + (1 - \lambda) y} \leq \lambda \frac{a^2}{x} + (1-\lambda) \frac{b^2}{y}. $$
+```math
+\frac{(\lambda a + (1-\lambda)b)^2}{\lambda x + (1 - \lambda) y} \leq \lambda \frac{a^2}{x} + (1-\lambda) \frac{b^2}{y}.
+```
 
 Expand the square and multiply both sides by $\lambda x + (1 - \lambda)y$ to obtain 
 
